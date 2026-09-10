@@ -68,7 +68,7 @@ try
     Check(FgGameProfile.Find(wuchang)?.Name == "明末：渊虚之羽", "Wuchang directory adapter");
     var preferences = Path.Combine(root, "prefs", "targets.json");
     FgPreferences.SaveExe(preferences, wuchang, wuchangExe);
-    Check(FgPreferences.GetExe(preferences, wuchang) == wuchangExe, "manual target survives reopening");
+    Check(FgPreferences.GetExe(preferences, wuchang) == Path.GetFullPath(wuchangExe), "manual target survives reopening");
     Check(FgPreferences.GetExe(preferences, wukong) is null, "game targets remain separate");
     var partial = Dir("partial");
     File.WriteAllText(Path.Combine(partial, FgInstaller.IniName), "before partial install");
@@ -76,6 +76,17 @@ try
     Throws(() => FgInstaller.Install(partial, "game.exe", source, asset, ini2), "partial write keeps recovery journal");
     FgInstaller.Restore(partial);
     Check(File.ReadAllText(Path.Combine(partial, FgInstaller.IniName)) == "before partial install", "partial install restores original");
+    if (args.Contains("--package-smoke"))
+    {
+        var realAsset = FgPackage.Assets[0];
+        var realSource = await FgPackage.AcquireAsync(Dir("download"), realAsset, null, CancellationToken.None);
+        Check(FgPackage.Hash(realSource) == realAsset.Sha256, "real upstream download verifies against pinned package");
+        var realGame = Dir("real-package-install");
+        FgInstaller.Install(realGame, "fixture-game.exe", realSource, realAsset, ini2);
+        Check(FgPackage.Hash(Path.Combine(realGame, realAsset.Name)) == realAsset.Sha256, "real package installed without loading DLL");
+        FgInstaller.Restore(realGame);
+        Check(!File.Exists(Path.Combine(realGame, realAsset.Name)), "real package removed by ownership-aware restore");
+    }
     Console.WriteLine($"{count} checks passed; fixture tests only, no GPU or gameplay claim.");
 }
 finally { Directory.Delete(root, true); }
