@@ -250,6 +250,25 @@ public partial class GameControlModel : ObservableObject
     }
 
     [RelayCommand]
+    async Task FrameGenerationAsync()
+    {
+        if (!gameControlWeakReference.TryGetTarget(out GameControl? control)) return;
+        var dialog = new EasyContentDialog(control.XamlRoot)
+        {
+            Title = "帧生成解锁 · FG Preview 0.1",
+            CloseButtonText = "关闭",
+        };
+        dialog.Resources["ContentDialogMaxWidth"] = 680;
+        dialog.Content = new ScrollViewer
+        {
+            MaxHeight = 540,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+            Content = new FrameGenerationControl(Game, dialog),
+        };
+        await dialog.ShowAsync();
+    }
+
+    [RelayCommand]
     async Task OpenInstallPathAsync()
     {
         try

@@ -153,6 +153,10 @@
                         </InfoBar.ActionButton>
                     </InfoBar>
 
+                    <Button Content="帧生成解锁 / 倍率设置（实验）"
+                            HorizontalAlignment="Stretch" Margin="0,4,0,8"
+                            Command="{x:Bind ViewModel.FrameGenerationCommand}" />
+
                     <TextBlock Text="{x:Bind ViewModel.TranslationProperties.NameText, Mode=OneWay}" FontWeight="Bold" />
                     <Grid HorizontalAlignment="Stretch" ColumnSpacing="8">
                         <Grid.ColumnDefinitions>

@@ -1,0 +1,33 @@
+name: FG Preview Windows build
+on:
+  push:
+    branches: [feature/frame-generation-preview]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  portable:
+    runs-on: windows-2025
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Test install and recovery behavior
+        run: dotnet run --project tests/FrameGeneration/FrameGeneration.Tests.csproj
+      - name: Build Windows x64 portable
+        run: dotnet publish "src/DLSS Swapper.csproj" --runtime win-x64 --self-contained --configuration Release_Portable -p:PublishDir=bin/publish/portable/
+      - name: Package preview
+        shell: pwsh
+        run: |
+          $publish = 'src/bin/publish/portable'
+          Copy-Item README.md "$publish/README-FG-Preview.md"
+          Copy-Item LICENSE "$publish/LICENSE"
+          @{ commit = (git rev-parse HEAD); version = 'FG Preview 0.1'; backendCommit = '1fb9ecbd980b1f191c092dce1b072b3cb9bd8984'; gpuValidation = 'pending user gameplay tests' } | ConvertTo-Json | Set-Content "$publish/FG-Preview-build.json"
+          Compress-Archive -Path "$publish/*" -DestinationPath DLSS-Swapper-FG-Preview-0.1-win-x64.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DLSS-Swapper-FG-Preview-0.1-win-x64
+          path: DLSS-Swapper-FG-Preview-0.1-win-x64.zip
+          if-no-files-found: error

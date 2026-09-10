@@ -14,10 +14,10 @@ static class Storage
 {
     static string? _storagePath;
 #if   PORTABLE && DEBUG
-    //public static string StoragePath => _storagePath ??= Path.Combine(AppContext.BaseDirectory, "StoredData", "DEBUG", Guid.NewGuid().ToString());
-    public static string StoragePath => _storagePath ??= Path.Combine(AppContext.BaseDirectory, "StoredData", "DEBUG");
+    //public static string StoragePath => _storagePath ??= Path.Combine(AppContext.BaseDirectory, "StoredData-FG-Preview", "DEBUG", Guid.NewGuid().ToString());
+    public static string StoragePath => _storagePath ??= Path.Combine(AppContext.BaseDirectory, "StoredData-FG-Preview", "DEBUG");
 #elif PORTABLE && !DEBUG
-    public static string StoragePath => _storagePath ??= Path.Combine(AppContext.BaseDirectory, "StoredData");
+    public static string StoragePath => _storagePath ??= Path.Combine(AppContext.BaseDirectory, "StoredData-FG-Preview");
 #elif !PORTABLE && DEBUG
     //public static string StoragePath => _storagePath ??= Path.Combine(Environment.ExpandEnvironmentVariables("%LOCALAPPDATA%"), "DLSS Swapper", "DEBUG", Guid.NewGuid().ToString());
     public static string StoragePath => _storagePath ??= Path.Combine(Environment.ExpandEnvironmentVariables("%LOCALAPPDATA%"), "DLSS Swapper", "DEBUG");
