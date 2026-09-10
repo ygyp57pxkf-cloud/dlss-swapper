@@ -13,3 +13,5 @@ Personal GPLv3 fork of beeradmoore/dlss-swapper. Active branch: feature/frame-ge
 ## Verification recorded 2026-09-10
 
 Source commit 9f83d04: Windows x64 WinUI publish succeeded in Actions run 34445794938; 26 core fixtures passed on Windows and macOS. Optional --package-smoke adds 3 passing local checks for actual pinned DLL download/install/restore without executing it. Windows UI/gameplay remains pending user tests. Project status synchronized to the accessible Obsidian vault project page DLSS Swapper FG.
+
+Upstream signing/winget workflows are restricted to the upstream repository; fork previews use fg-preview.yml and must not publish under the official winget package identity.

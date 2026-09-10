@@ -9,6 +9,7 @@ on:
 
 jobs:
   build:
+    if: github.repository == 'beeradmoore/dlss-swapper'
     runs-on: windows-2025
     env:
       SHOULD_SIGN: ${{ startsWith(github.ref, 'refs/tags/') }}
