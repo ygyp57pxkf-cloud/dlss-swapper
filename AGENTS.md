@@ -9,3 +9,7 @@ Personal GPLv3 fork of beeradmoore/dlss-swapper. Active branch: feature/frame-ge
 - Core fixture tests: dotnet run --project tests/FrameGeneration/FrameGeneration.Tests.csproj. Complete WinUI builds on Windows using .github/workflows/fg-preview.yml. macOS core tests cannot certify UI or gameplay.
 - Portable settings isolated in StoredData-FG-Preview; application updater points to this fork.
 - README.md is the Chinese user guide; upstream README kept at docs/README.upstream.md.
+
+## Verification recorded 2026-09-10
+
+Source commit 9f83d04: Windows x64 WinUI publish succeeded in Actions run 34445794938; 26 core fixtures passed on Windows and macOS. Optional --package-smoke adds 3 passing local checks for actual pinned DLL download/install/restore without executing it. Windows UI/gameplay remains pending user tests. Project status synchronized to the accessible Obsidian vault project page DLSS Swapper FG.
