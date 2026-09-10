@@ -62,6 +62,20 @@ try
     Directory.CreateDirectory(Path.GetDirectoryName(expected)!); File.WriteAllBytes(expected, []);
     Check(FgGameProfile.Find(wukong)?.Name == "黑神话：悟空", "Wukong directory adapter");
     Check(FgGameProfile.Find(Dir("unknown")) is null, "unknown game remains experimental");
+    var wuchang = Dir("wuchang");
+    var wuchangExe = Path.Combine(wuchang, FgGameProfile.All[1].RelativeExe);
+    Directory.CreateDirectory(Path.GetDirectoryName(wuchangExe)!); File.WriteAllBytes(wuchangExe, []);
+    Check(FgGameProfile.Find(wuchang)?.Name == "明末：渊虚之羽", "Wuchang directory adapter");
+    var preferences = Path.Combine(root, "prefs", "targets.json");
+    FgPreferences.SaveExe(preferences, wuchang, wuchangExe);
+    Check(FgPreferences.GetExe(preferences, wuchang) == wuchangExe, "manual target survives reopening");
+    Check(FgPreferences.GetExe(preferences, wukong) is null, "game targets remain separate");
+    var partial = Dir("partial");
+    File.WriteAllText(Path.Combine(partial, FgInstaller.IniName), "before partial install");
+    File.WriteAllText(Path.Combine(partial, "version.dll.fg-stage"), "interrupted stage");
+    Throws(() => FgInstaller.Install(partial, "game.exe", source, asset, ini2), "partial write keeps recovery journal");
+    FgInstaller.Restore(partial);
+    Check(File.ReadAllText(Path.Combine(partial, FgInstaller.IniName)) == "before partial install", "partial install restores original");
     Console.WriteLine($"{count} checks passed; fixture tests only, no GPU or gameplay claim.");
 }
 finally { Directory.Delete(root, true); }

@@ -34,6 +34,7 @@ public sealed class FrameGenerationControl : StackPanel
     readonly StackPanel _settings = new() { Spacing = 8 };
     CancellationTokenSource? _cancellation;
     bool _busy;
+    string PreferencesPath => Path.Combine(Storage.StoragePath, "FrameGeneration", "targets.json");
 
     static TextBlock Text(string text) => new() { Text = text, TextWrapping = TextWrapping.Wrap, IsTextSelectionEnabled = true };
 
@@ -44,6 +45,12 @@ public sealed class FrameGenerationControl : StackPanel
         Spacing = 10;
         var profile = FgGameProfile.Find(game.InstallPath);
         if (profile is not null) _exe.Text = Path.Combine(game.InstallPath, profile.RelativeExe.Replace('/', Path.DirectorySeparatorChar));
+        try
+        {
+            var savedExe = FgPreferences.GetExe(PreferencesPath, game.InstallPath);
+            if (savedExe is not null && File.Exists(savedExe)) _exe.Text = savedExe;
+        }
+        catch { /* A bad preference file must not prevent manually selecting the game. */ }
         Children.Add(new InfoBar { IsOpen = true, IsClosable = false, Severity = InfoBarSeverity.Warning, Message = "非官方帧生成实验功能，仅 Windows x64 / D3D12。2×/4×是上限，实际倍率由游戏决定；文件安装成功不等于已解锁。" });
         Children.Add(_compatibility);
         Children.Add(_detected);
@@ -133,7 +140,16 @@ public sealed class FrameGenerationControl : StackPanel
         {
             var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(App.CurrentApp.MainWindow);
             var file = FileSystemHelper.OpenFile(hwnd, [new FileSystemHelper.FileFilter(label, filter)], _game.InstallPath);
-            if (!string.IsNullOrWhiteSpace(file)) { box.Text = file; if (box == _exe) LoadInstalledSettings(); }
+            if (!string.IsNullOrWhiteSpace(file))
+            {
+                box.Text = file;
+                if (box == _exe)
+                {
+                    FgInstaller.ValidateExe(_game.InstallPath, file);
+                    FgPreferences.SaveExe(PreferencesPath, _game.InstallPath, file);
+                    LoadInstalledSettings();
+                }
+            }
         }
         catch (Exception ex) { Status(ex.Message, InfoBarSeverity.Error); }
     }
@@ -184,6 +200,7 @@ public sealed class FrameGenerationControl : StackPanel
             var exe = Path.GetFullPath(_exe.Text.Trim().Trim('"'));
             var directory = FgInstaller.ValidateExe(_game.InstallPath, exe);
             EnsureGameStopped(exe);
+            FgPreferences.SaveExe(PreferencesPath, _game.InstallPath, exe);
             var asset = FgPackage.Assets[_proxy.SelectedIndex];
             var ini = FgGameProfile.Ini(profile.Router, _multiplier.SelectedIndex == 1 ? 4 : 2, _approximate.IsChecked == true);
             Status("正在获取固定版本并核对 DLL；下载完成前不会修改游戏文件。", InfoBarSeverity.Informational);

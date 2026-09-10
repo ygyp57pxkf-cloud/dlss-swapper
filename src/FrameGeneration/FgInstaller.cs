@@ -39,7 +39,7 @@ public static class FgInstaller
         PlainPath(exe);
         using var stream = File.OpenRead(exe);
         using var pe = new PEReader(stream);
-        if (pe.PEHeaders.CoffHeader.Machine != Machine.Amd64) throw new IOException("帧生成后端仅支持 Windows x64 游戏。");
+        if (pe.PEHeaders.CoffHeader.Machine != Machine.Amd64 || !pe.PEHeaders.IsExe || pe.PEHeaders.PEHeader?.Magic != PEMagic.PE32Plus) throw new IOException("帧生成后端仅支持 Windows x64 游戏。");
         return Path.GetDirectoryName(exe)!;
     }
     static string StatePath(string directory) => Path.Combine(directory, StateDirectory, "state.json");
@@ -88,6 +88,7 @@ public static class FgInstaller
     public static void Install(string directory, string exeName, string source, FgAsset asset, string ini)
     {
         PlainPath(directory);
+        if (!FgPackage.Assets.Any(a => a.Name == asset.Name)) throw new IOException("不支持的代理名称。");
         FgPackage.Verify(source, asset);
         var backupDirectory = Path.Combine(directory, StateDirectory);
         PlainPath(backupDirectory);
