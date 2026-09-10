@@ -32,6 +32,7 @@ public sealed class FrameGenerationControl : StackPanel
     readonly Button _restore = new() { Content = "卸载并恢复原件" };
     readonly Button _cancel = new() { Content = "取消下载", Visibility = Visibility.Collapsed };
     readonly StackPanel _settings = new() { Spacing = 8 };
+    readonly ContentControl _settingsHost = new() { HorizontalContentAlignment = HorizontalAlignment.Stretch };
     CancellationTokenSource? _cancellation;
     bool _busy;
     string PreferencesPath => Path.Combine(Storage.StoragePath, "FrameGeneration", "targets.json");
@@ -72,7 +73,8 @@ public sealed class FrameGenerationControl : StackPanel
         actions.Children.Add(_apply);
         actions.Children.Add(_restore);
         _settings.Children.Add(actions);
-        Children.Add(_settings);
+        _settingsHost.Content = _settings;
+        Children.Add(_settingsHost);
         Children.Add(_cancel);
         Children.Add(_status);
         var logs = new Button { Content = "检查 / 打开后端日志" };
@@ -183,7 +185,7 @@ public sealed class FrameGenerationControl : StackPanel
     void Busy(bool busy)
     {
         _busy = busy;
-        _settings.IsEnabled = !busy;
+        _settingsHost.IsEnabled = !busy;
         _dialog.IsEnabled = true;
         _cancel.Visibility = busy ? Visibility.Visible : Visibility.Collapsed;
         UpdateApply();
