@@ -19,3 +19,5 @@ Upstream signing/winget workflows are restricted to the upstream repository; for
 ## Preview 0.2 (2026-09-13)
 
 Includes the pre-existing local library scanning fix after review. Version switching must preserve the initial INI backup and record previous DLL hashes so an interrupted upgrade can still be restored. Log summaries describe observed events only; never equate a copied DLL, an old log, or a generated_count event with a full gameplay/quality pass. The separate CMP40HX-Unlock repository records 2026-09-13 machine-specific driver/Gen2/NVENC success; FG on that machine remains unverified here.
+
+Validation for source 2ce04a5: 44 core checks passed on macOS and Windows; Windows portable build succeeded in Actions run 34740732863. Real backend download/install/upgrade/downgrade/restore was checked locally without executing DLLs. FG Preview 0.2 ZIP has an x64 app, guide and build metadata, and no FG backend DLLs; gameplay/UI acceptance remains pending.
