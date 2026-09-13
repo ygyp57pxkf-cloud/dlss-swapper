@@ -1,8 +1,16 @@
-# DLSS Swapper · FG Preview 0.2
+# DLSS Swapper · FG Preview 0.3
 
-基于 [DLSS Swapper](https://github.com/beeradmoore/dlss-swapper) 的个人实验分支。保留原来的游戏库、DLSS 版本选择、预设和恢复界面，增加 **帧生成解锁 / 倍率设置**。
+基于 [DLSS Swapper](https://github.com/beeradmoore/dlss-swapper) 的个人实验分支。保留原来的游戏库、DLSS 版本选择、预设和恢复界面，增加 **帧生成解锁 / 倍率设置** 与 **游戏、图片、视频画质增强工具入口**。
 
 > 这是非官方 Fork，不是原作者发布的 DLSS Swapper。首版面向 **RTX 3080** 和用户的 **CMP 40HX 解锁版（按 SM75 / 2060S 路线试验）**，测试游戏为 **《黑神话：悟空》与《明末：渊虚之羽》**。这些是待实测目标，不是已经通过的性能/兼容性认证。不会修改驱动、刷固件、伪装显卡或绕过反作弊。
+
+## 0.3：游戏与图片 / 视频增强入口
+
+- 左侧新增 **画质增强**，按需下载或导入固定版本的 **DLSS5-Swapper 2.2.7** 与 **DLSS 5 Visual Enhancer 8.0**，再打开各自的配置界面。
+- 游戏详情可带入目录；选择实际 EXE 后只读显示 32/64 位、静态图形接口与现有 Mod 线索。复制路径后在外部管理器中 Add a game，不自动向游戏目录写入。
+- 提供下载进度、取消、完整性校验与损坏缓存重试；已有工具配置和视频输出不覆盖。主程序不捆绑约 222 MiB / 475 MiB 的两个组件。
+- NR、DLSS 超分、光线重构和插帧分别对待，不保证任意老游戏“强制开启 DLSS 5”。建议 RTX 3080 首测；40HX 的 NR 和媒体工具名称检测仍待验证。
+- **完整教程：[老滚五 / 战地3 / 孤胆枪手、图片与本地视频步骤](docs/Enhancement-Tools.md)**。便携 ZIP 内为 `Enhancement-Tools.md`。
 
 ## 0.2：后端选择、日志诊断与完整回退
 
@@ -21,27 +29,27 @@
 - 封面请求独立限流，Steam 封面元数据和图片下载使用 20 秒请求取消预算；不改 DLSS 文件下载的全局超时。
 - 这是已确认代码缺陷的修复，截图不能确定用户机器实际命中哪条故障；需要重新运行确认。若仍卡住，请提供 `StoredData-FG-Preview/logs` 中本次运行日志（实际日志文件位置见下方说明）。
 
-### 从 0.1 升级
+### 从旧预览版升级
 
 退出旧程序，把新版完整解压到一个新目录运行，不覆盖或删除旧目录。先验证游戏库能扫描完成。要沿用设置，可在两版都退出时复制旧目录的 `StoredData-FG-Preview` 到新版旁；游戏目录内的帧生成安装记录与原件备份不受程序解压目录变化影响。不要为了清除转圈而删除游戏文件或 FG 备份。
 
 ## 下载与启动
 
-到本 Fork 的 [Releases](https://github.com/ygyp57pxkf-cloud/dlss-swapper/releases) 下载 `DLSS-Swapper-FG-Preview-0.2-win-x64.zip`。这是未签名的 Windows x64 便携测试包，包含 .NET / Windows App SDK 运行文件；解压整个压缩包至可写目录，再运行 `DLSS Swapper.exe`，不要在 ZIP 内直接运行或只拷贝 EXE。
+到本 Fork 的 [Releases](https://github.com/ygyp57pxkf-cloud/dlss-swapper/releases) 下载 `DLSS-Swapper-FG-Preview-0.3-win-x64.zip`。这是未签名的 Windows x64 便携测试包，包含 .NET / Windows App SDK 运行文件；解压整个压缩包至可写目录，再运行 `DLSS Swapper.exe`，不要在 ZIP 内直接运行或只拷贝 EXE。
 
 如 Release 尚未提供，打开 [FG Preview Windows build](https://github.com/ygyp57pxkf-cloud/dlss-swapper/actions/workflows/fg-preview.yml)，选择成功构建并下载同名 artifact。Artifacts 下载可能需要登录 GitHub。
 
-系统要求：Windows 10/11 x64（至少 Windows 10 build 19041）、正常工作的 NVIDIA 驱动，以及可通过该后端接入 DLSS FG 的 **D3D12** 游戏。CUDA Toolkit / Python 不需要安装。上游记录使用驱动 591.86，但这不是声明的最低版本；本 Fork 不自动更新驱动。
+Swapper / Native FG 系统要求：Windows 10/11 x64（至少 Windows 10 build 19041）、正常工作的 NVIDIA 驱动，以及可通过该后端接入 DLSS FG 的 **D3D12** 游戏。CUDA Toolkit / Python 不需要安装。上游记录使用驱动 591.86，但这不是声明的最低版本；本 Fork 不自动更新驱动。新媒体工具的 NR 另需 Windows 11 / Direct3D 12；旧游戏增强请看上方独立教程。
 
 便携配置放在 `StoredData-FG-Preview`，与官方便携版 `StoredData` 分开。程序更新检查指向本 Fork，避免用官方包覆盖实验功能。新增界面首版使用中文，原有界面语言选择不变。
 
 ## 实际包含的功能
 
-| 操作 | 首版行为 |
+| 操作 | 当前行为 |
 |---|---|
 | 替换 DLSS / DLSSG / RR 等文件 | 保留 Swapper 原功能；仍按原界面选择版本并 Swap |
 | 帧生成按钮 | 游戏详情中新增入口，安装固定版本后端并写入配置 |
-| 倍率 | 选择 2× 或 4× **上限**，分别写入 `MaxGeneratedFrames=1/3` |
+| 倍率 | 选择 2×/3×/4× **上限**，分别写入 `MaxGeneratedFrames=1/2/3` |
 | GPU 推荐 | 尝试读取 `nvidia-smi` 型号、显存和驱动；单 GPU 时建议配置，多 GPU/检测失败由用户确认 |
 | 两款目标游戏 | 识别已知渲染 EXE 目录；未验证的版本/显卡组合明确标注 |
 | 未适配游戏 | 默认继续普通 DLSS 替换；主动选择 EXE、显卡并确认警告后才尝试 FG 安装 |
@@ -140,6 +148,7 @@ Windows 上安装 .NET 10 SDK 后：
 
 ```powershell
 dotnet run --project tests/FrameGeneration/FrameGeneration.Tests.csproj
+dotnet run --project tests/EnhancementTools/EnhancementTools.Tests.csproj
 dotnet publish "src/DLSS Swapper.csproj" --runtime win-x64 --self-contained --configuration Release_Portable -p:PublishDir=bin/publish/portable/
 ```
 

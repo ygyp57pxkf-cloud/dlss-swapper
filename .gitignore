@@ -22,3 +22,4 @@ src/DLSS Swapper.net8.csproj
 
 StoredData-FG-Preview/
 .fg-tests-*/
+.enhancement-tests-*/

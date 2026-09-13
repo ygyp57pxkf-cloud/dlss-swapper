@@ -255,7 +255,7 @@ public partial class GameControlModel : ObservableObject
         if (!gameControlWeakReference.TryGetTarget(out GameControl? control)) return;
         var dialog = new EasyContentDialog(control.XamlRoot)
         {
-            Title = "帧生成解锁 · FG Preview 0.2",
+            Title = "帧生成解锁 · FG Preview 0.3",
             CloseButtonText = "关闭",
         };
         dialog.Resources["ContentDialogMaxWidth"] = 680;
@@ -266,6 +266,14 @@ public partial class GameControlModel : ObservableObject
             Content = new FrameGenerationControl(Game, dialog),
         };
         await dialog.ShowAsync();
+    }
+
+    [RelayCommand]
+    void EnhancementTools()
+    {
+        if (!gameControlWeakReference.TryGetTarget(out GameControl? control)) return;
+        control.Hide();
+        App.CurrentApp.MainWindow.GoToEnhancements(Game.InstallPath);
     }
 
     [RelayCommand]

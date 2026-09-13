@@ -10,6 +10,16 @@ Personal GPLv3 fork of beeradmoore/dlss-swapper. Active branch: feature/frame-ge
 - Portable settings isolated in StoredData-FG-Preview; application updater points to this fork.
 - README.md is the Chinese user guide; upstream README kept at docs/README.upstream.md.
 
+## Preview 0.3 tool integration (2026-09-13)
+
+- EnhancementToolsPage is a lazy navigation page. Never download, hash large optional tools, or initialize them during game-library startup. Hashing/extraction runs on worker tasks; keep the original scan fix intact.
+- ToolCatalog pins DLSS5-Swapper 2.2.7 and DLSS 5 Visual Enhancer 8.0 by release URL, byte size and SHA-256. Download/import only on user click, stage under StoredData-FG-Preview/EnhancementTools, launch only on a separate click. Do not bundle third-party tools or model/runtime assets in our ZIP.
+- This version opens each external tool's existing UI. No game-path CLI is confirmed: copy the selected path, then the user uses Add a game. GameTargetInspector only reads PE architecture/static imports and same-directory Mod names; unknown runtime APIs remain unknown. Never claim NR is active from a ready receipt or successful process launch.
+- Existing tool directories can contain user media outputs/configuration: never overwrite incomplete installs or remove their directory as a cache cleanup. Only owned download cache/temporary staging is disposable. Restore game changes through the manager that installed them, not by deleting the external tool.
+- Visual Enhancer 8.0 marks AI compatibility from an RTX substring in the GPU name. CMP 40HX may be marked incompatible despite its separate NVENC unlock record; do not spoof names or change drivers to bypass this. Recommend RTX 3080 first. GPU, Windows UI and actual game/media results await user tests.
+- Tests: dotnet run --project tests/EnhancementTools/EnhancementTools.Tests.csproj (40 fixture checks); add -- --packages <directory> for four actual pinned package preparation checks without execution. All 44 passed on macOS; Windows CI must also pass before publication. Existing FrameGeneration tests remain required.
+- docs/Enhancement-Tools.md is the Chinese tool guide. fg-preview.yml workflow_dispatch can publish fg-preview-0.3 only when publish_preview=true and checks/build/package verification succeed. Keep published tags immutable.
+
 ## Verification recorded 2026-09-10
 
 Source commit 9f83d04: Windows x64 WinUI publish succeeded in Actions run 34445794938; 26 core fixtures passed on Windows and macOS. Optional --package-smoke adds 3 passing local checks for actual pinned DLL download/install/restore without executing it. Windows UI/gameplay remains pending user tests. Project status synchronized to the accessible Obsidian vault project page DLSS Swapper FG.

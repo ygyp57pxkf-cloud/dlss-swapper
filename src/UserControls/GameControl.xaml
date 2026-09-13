@@ -156,6 +156,9 @@
                     <Button Content="帧生成解锁 / 倍率设置（实验）"
                             HorizontalAlignment="Stretch" Margin="0,4,0,8"
                             Command="{x:Bind ViewModel.FrameGenerationCommand}" />
+                    <Button Content="DLSS 5 游戏增强（工具入口）"
+                            HorizontalAlignment="Stretch" Margin="0,0,0,8"
+                            Command="{x:Bind ViewModel.EnhancementToolsCommand}" />
 
                     <TextBlock Text="{x:Bind ViewModel.TranslationProperties.NameText, Mode=OneWay}" FontWeight="Bold" />
                     <Grid HorizontalAlignment="Stretch" ColumnSpacing="8">

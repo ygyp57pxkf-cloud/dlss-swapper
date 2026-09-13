@@ -177,6 +177,7 @@ public sealed partial class MainWindow : Window
     GameGridPage? gameGridPage;
     LibraryPage? libraryPage;
     SettingsPage? settingsPage;
+    EnhancementToolsPage? enhancementToolsPage;
 
     public GameGridPage? GameGridPage => gameGridPage;
 
@@ -197,6 +198,10 @@ public sealed partial class MainWindow : Window
             {
                 ContentFrame.Content = libraryPage ??= new LibraryPage();
             }
+        }
+        else if (page == EnhancementToolsPage.PageTag)
+        {
+            ContentFrame.Content = enhancementToolsPage ??= new EnhancementToolsPage();
         }
         else if (page == SettingsPage.PageTag)
         {
@@ -231,6 +236,12 @@ public sealed partial class MainWindow : Window
                 }
             }
         }
+    }
+
+    internal void GoToEnhancements(string gameRoot)
+    {
+        GoToPage(EnhancementToolsPage.PageTag);
+        enhancementToolsPage!.SetGameRoot(gameRoot);
     }
 
     internal void GoToAcknowledgements()
