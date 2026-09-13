@@ -20,6 +20,8 @@ Personal GPLv3 fork of beeradmoore/dlss-swapper. Active branch: feature/frame-ge
 - Tests: dotnet run --project tests/EnhancementTools/EnhancementTools.Tests.csproj (40 fixture checks); add -- --packages <directory> for four actual pinned package preparation checks without execution. All 44 passed on macOS; Windows CI must also pass before publication. Existing FrameGeneration tests remain required.
 - docs/Enhancement-Tools.md is the Chinese tool guide. fg-preview.yml workflow_dispatch can publish fg-preview-0.3 only when publish_preview=true and checks/build/package verification succeed. Keep published tags immutable.
 
+Source 3cf9719 passed all 84 core fixture checks on Windows (44 FG + 40 tools) and the Windows x64 portable build/package checks in Actions run 34749573457. That runner published fg-preview-0.3. Four additional actual-package preparation checks passed locally without executing third-party programs. Real Windows UI, GPU, game and media acceptance remains pending; the accessible Obsidian project page tracks user testing.
+
 ## Verification recorded 2026-09-10
 
 Source commit 9f83d04: Windows x64 WinUI publish succeeded in Actions run 34445794938; 26 core fixtures passed on Windows and macOS. Optional --package-smoke adds 3 passing local checks for actual pinned DLL download/install/restore without executing it. Windows UI/gameplay remains pending user tests. Project status synchronized to the accessible Obsidian vault project page DLSS Swapper FG.
