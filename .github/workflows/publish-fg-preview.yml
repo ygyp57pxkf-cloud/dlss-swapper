@@ -1,0 +1,49 @@
+name: Publish verified FG Preview 0.2
+on:
+  workflow_dispatch:
+permissions:
+  actions: read
+  contents: write
+jobs:
+  publish:
+    if: github.repository == 'ygyp57pxkf-cloud/dlss-swapper'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: DLSS-Swapper-FG-Preview-0.2-win-x64
+          run-id: 34740732863
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: artifact
+      - name: Verify binary source and update the user guide
+        shell: python
+        run: |
+          import json, pathlib, zipfile
+          source = pathlib.Path('artifact/DLSS-Swapper-FG-Preview-0.2-win-x64.zip')
+          target = pathlib.Path('DLSS-Swapper-FG-Preview-0.2-win-x64.zip')
+          with zipfile.ZipFile(source) as original, zipfile.ZipFile(target, 'w') as final:
+              meta = json.loads(original.read('FG-Preview-build.json').decode('utf-8-sig'))
+              assert meta['commit'] == '2ce04a50d0f45125cb301ff35e51a665e5b26d09'
+              assert meta['version'] == 'FG Preview 0.2'
+              meta['documentationCommit'] = '34e0b803b81e3b04c7cbab2bc8b670fdd9240eb5'
+              for entry in original.infolist():
+                  data = original.read(entry)
+                  if entry.filename == 'README-FG-Preview.md':
+                      data = pathlib.Path('README.md').read_bytes()
+                  elif entry.filename == 'FG-Preview-build.json':
+                      data = json.dumps(meta, indent=2).encode()
+                  final.writestr(entry, data)
+          with zipfile.ZipFile(source) as original, zipfile.ZipFile(target) as final:
+              assert final.testzip() is None
+              for entry in original.infolist():
+                  if entry.filename not in {'README-FG-Preview.md', 'FG-Preview-build.json'}:
+                      assert entry.CRC == final.getinfo(entry.filename).CRC
+              guide = final.read('README-FG-Preview.md').decode('utf-8-sig')
+              assert guide.index('6. 在后端下拉框') < guide.index('7. 阅读警告')
+          print('Verified package; program files unchanged from the successful Windows build.')
+      - name: Upload preview asset
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload fg-preview-0.2 DLSS-Swapper-FG-Preview-0.2-win-x64.zip --clobber
