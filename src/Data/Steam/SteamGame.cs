@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
+using System.Threading;
 using System.Web;
 using CommunityToolkit.Mvvm.ComponentModel;
 using DLSS_Swapper.Data.Steam.SteamAPI;
@@ -86,7 +87,8 @@ internal partial class SteamGame : Game
             var jsonPayload = JsonSerializer.Serialize(getItemsInput, SourceGenerationContext.Default.GetItemsInput);
             var payloadUrlEncoded = HttpUtility.UrlEncode(jsonPayload);
 
-            using (var steamApiResponse = await App.CurrentApp.HttpClient.GetAsync($"https://api.steampowered.com/IStoreBrowseService/GetItems/v1/?input_json={payloadUrlEncoded}", System.Net.Http.HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false))
+            using var coverTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+            using (var steamApiResponse = await App.CurrentApp.HttpClient.GetAsync($"https://api.steampowered.com/IStoreBrowseService/GetItems/v1/?input_json={payloadUrlEncoded}", System.Net.Http.HttpCompletionOption.ResponseHeadersRead, coverTimeout.Token).ConfigureAwait(false))
             {
                 if (steamApiResponse.IsSuccessStatusCode == false)
                 {
@@ -94,9 +96,9 @@ internal partial class SteamGame : Game
                     return false;
                 }
 
-                using (var responseStream = await steamApiResponse.Content.ReadAsStreamAsync().ConfigureAwait(false))
+                using (var responseStream = await steamApiResponse.Content.ReadAsStreamAsync(coverTimeout.Token).ConfigureAwait(false))
                 {
-                    var response = JsonSerializer.Deserialize(responseStream, SourceGenerationContext.Default.SteamAPIResponseGetItemsResponse);
+                    var response = await JsonSerializer.DeserializeAsync(responseStream, SourceGenerationContext.Default.SteamAPIResponseGetItemsResponse, coverTimeout.Token).ConfigureAwait(false);
                     if (response?.Response?.StoreItems.Any() == true)
                     {
                         // We are only doing one search, so we likely only care for the first item.

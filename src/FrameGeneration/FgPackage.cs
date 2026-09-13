@@ -5,10 +5,16 @@ using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace DLSS_Swapper.FrameGeneration;
 
-public sealed record FgAsset(string Name, string RepositoryPath, string Sha256);
+public sealed record FgAsset(string Name, string RepositoryPath, string Sha256, string Version = FgPackage.Version, string Commit = FgPackage.Commit);
+
+public sealed record FgBackend(string Version, string Commit, FgAsset[] Assets, string Description)
+{
+    public override string ToString() => Version + " · " + Description;
+}
 
 public static class FgPackage
 {
@@ -21,6 +27,19 @@ public static class FgPackage
         new("winhttp.dll", "altnative/winhttp.dll", "8f2516982246e3baa46d1d3926a94dc9aadfb8a248c17fe9ff811527676525f9"),
         new("dxgi.dll", "altnative/dxgi.dll", "fe69f30bf6a5050267053d6596827a031abb8654a4704b89ec1aa38f5f2fe16b")
     ];
+    public const string CandidateCommit = "5f62ff44a9c08f9841fa605e7b7160f79ccd2c40";
+    public static readonly FgAsset[] CandidateAssets = [
+        new("version.dll", "version.dll", "c844646d835a7b88ed1382eea80403d38b433f8ac09cf92581c73698c44ae7c2", "Native 0.2.4", CandidateCommit),
+        new("winmm.dll", "altnative/winmm.dll", "1004dd4ee0edbe4e1af4c8c7b30d4786bea0f5e7c0412566996b4c2543ae7e36", "Native 0.2.4", CandidateCommit),
+        new("dinput8.dll", "altnative/dinput8.dll", "ef3c3d49c5b5c8a17289c24da9b22885570793d72f3db628fa500f9efdb20489", "Native 0.2.4", CandidateCommit),
+        new("winhttp.dll", "altnative/winhttp.dll", "1619839e4d1b6145ce9a587ba807f42e64f2b0984af9e81700d42ccf46ff7253", "Native 0.2.4", CandidateCommit),
+        new("dxgi.dll", "altnative/dxgi.dll", "8d29eddbd7f1c3e272d07f94ab8812a80ef5b7aeb73923320bf9a432ddcf74c0", "Native 0.2.4", CandidateCommit)
+    ];
+    public static readonly FgBackend[] Backends = [
+        new(Version, Commit, Assets, "原版后端 / 默认保留"),
+        new("Native 0.2.4", CandidateCommit, CandidateAssets, "显存与历史帧修复 / 可选测试")
+    ];
+    public static IEnumerable<FgAsset> AllAssets => Backends.SelectMany(b => b.Assets);
     public static string Hash(string file)
     {
         using var stream = File.OpenRead(file);
@@ -49,7 +68,7 @@ public static class FgPackage
         try
         {
             using var client = new HttpClient { Timeout = TimeSpan.FromMinutes(3) };
-            using var response = await client.GetAsync($"https://raw.githubusercontent.com/sdli1995/dlssg_for_sm86/{Commit}/{asset.RepositoryPath}", HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+            using var response = await client.GetAsync($"https://raw.githubusercontent.com/sdli1995/dlssg_for_sm86/{asset.Commit}/{asset.RepositoryPath}", HttpCompletionOption.ResponseHeadersRead, cancellationToken);
             response.EnsureSuccessStatusCode();
             if (response.Content.Headers.ContentLength > 256L * 1024 * 1024) throw new IOException("下载文件过大。");
             await using (var source = await response.Content.ReadAsStreamAsync(cancellationToken))

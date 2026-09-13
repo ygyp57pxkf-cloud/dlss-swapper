@@ -7,5 +7,6 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../../src/FrameGeneration/*.cs" Link="Core/%(Filename)%(Extension)" />
+    <Compile Include="../../src/Helpers/BackgroundCoverRefresh.cs" Link="Core/BackgroundCoverRefresh.cs" />
   </ItemGroup>
 </Project>

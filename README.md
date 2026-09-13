@@ -1,12 +1,33 @@
-# DLSS Swapper · FG Preview 0.1
+# DLSS Swapper · FG Preview 0.2
 
 基于 [DLSS Swapper](https://github.com/beeradmoore/dlss-swapper) 的个人实验分支。保留原来的游戏库、DLSS 版本选择、预设和恢复界面，增加 **帧生成解锁 / 倍率设置**。
 
 > 这是非官方 Fork，不是原作者发布的 DLSS Swapper。首版面向 **RTX 3080** 和用户的 **CMP 40HX 解锁版（按 SM75 / 2060S 路线试验）**，测试游戏为 **《黑神话：悟空》与《明末：渊虚之羽》**。这些是待实测目标，不是已经通过的性能/兼容性认证。不会修改驱动、刷固件、伪装显卡或绕过反作弊。
 
+## 0.2：后端选择、日志诊断与完整回退
+
+- 原 Native 0.2.3 仍为默认后端；新增可选 Native 0.2.4，修复上游记录的显存资源滞留和历史帧问题。同一个代理入口可以直接切换版本再应用，异常时选择旧版回退；始终保留首次安装前的原 INI。
+- 倍率上限增加 3×。2×/3×/4× 分别写入最多额外生成 1/2/3 帧，仍由游戏实际请求倍率。
+- “检查 / 打开后端日志”区分代理重定向、功能创建、生成帧记录和错误事件；早于本次安装的日志不用于验证新后端。最多读取文件前 8 MiB，日志摘要不代表实际呈现倍率、画质或稳定性。
+- 包含下述游戏库扫描修复，封面下载不再阻塞本地扫描完成。
+- Native 0.2.4 仍有[宽屏/过场画幅变化崩溃反馈](https://github.com/sdli1995/dlssg_for_sm86/issues/325)。先测试 2×；错误时退出游戏、选择 Native 0.2.3 后重新应用。切换代理文件名时仍须先卸载恢复。
+
+40HX 的驱动与自动启动记录见独立的 [CMP40HX-Unlock](https://github.com/ygyp57pxkf-cloud/CMP40HX-Unlock/tree/main/automatic-boot)。该仓库 2026-09-13 记录了特定机器的算力/Gen2 双解锁及 NVENC 主机端验证；这不等于本 Swapper、Native 0.2.4 或两款目标游戏已完成 40HX 实测。
+
+## 0.1.1：修复游戏库一直扫描 / 游戏处理中
+
+- 本地 DLL 扫描不再等待在线封面下载，封面离线也可进入完成本地扫描的游戏。
+- 移植并核对上游 [PR #933](https://github.com/beeradmoore/dlss-swapper/pull/933) 的界面线程修复、加载状态清理和扫描并发限制；修复 Steam 等游戏库在后台线程更新绑定属性的问题。
+- 封面请求独立限流，Steam 封面元数据和图片下载使用 20 秒请求取消预算；不改 DLSS 文件下载的全局超时。
+- 这是已确认代码缺陷的修复，截图不能确定用户机器实际命中哪条故障；需要重新运行确认。若仍卡住，请提供 `StoredData-FG-Preview/logs` 中本次运行日志（实际日志文件位置见下方说明）。
+
+### 从 0.1 升级
+
+退出旧程序，把新版完整解压到一个新目录运行，不覆盖或删除旧目录。先验证游戏库能扫描完成。要沿用设置，可在两版都退出时复制旧目录的 `StoredData-FG-Preview` 到新版旁；游戏目录内的帧生成安装记录与原件备份不受程序解压目录变化影响。不要为了清除转圈而删除游戏文件或 FG 备份。
+
 ## 下载与启动
 
-到本 Fork 的 [Releases](https://github.com/ygyp57pxkf-cloud/dlss-swapper/releases) 下载 `DLSS-Swapper-FG-Preview-0.1-win-x64.zip`。这是未签名的 Windows x64 便携测试包，包含 .NET / Windows App SDK 运行文件；解压整个压缩包至可写目录，再运行 `DLSS Swapper.exe`，不要在 ZIP 内直接运行或只拷贝 EXE。
+到本 Fork 的 [Releases](https://github.com/ygyp57pxkf-cloud/dlss-swapper/releases) 下载 `DLSS-Swapper-FG-Preview-0.2-win-x64.zip`。这是未签名的 Windows x64 便携测试包，包含 .NET / Windows App SDK 运行文件；解压整个压缩包至可写目录，再运行 `DLSS Swapper.exe`，不要在 ZIP 内直接运行或只拷贝 EXE。
 
 如 Release 尚未提供，打开 [FG Preview Windows build](https://github.com/ygyp57pxkf-cloud/dlss-swapper/actions/workflows/fg-preview.yml)，选择成功构建并下载同名 artifact。Artifacts 下载可能需要登录 GitHub。
 
@@ -46,7 +67,7 @@
 5. 选择显卡配置和 **2×上限**。首轮保留 PTX、精确模式；40HX 单列实验档，不把型号伪装识别结果当成硬件能力证明。
 6. 代理入口先用 `version.dll`。本地 DLL 留空时，点击应用会从上游**固定提交**下载对应文件并核验；也可先下载该提交文件，再用本地 DLL 选项导入。
 7. 阅读警告，勾选已退出游戏/单机实验确认，点击 **“解锁 / 应用帧生成配置”**。下载可取消；写入时不能关闭窗口。成功提示只表示文件安装和配置写入完成。
-8. 启动游戏，使用 D3D12，在图形/显示设置启用 DLSS 帧生成。若有 2×/4×选项，再选择不超过上限的倍率。游戏未提供该菜单时，不要把工具选了 4×当作实际运行 4×。
+8. 在后端下拉框选择版本（默认 0.2.3，可选 0.2.4），应用时会按所选提交下载并验证。启动游戏，使用 D3D12，在图形/显示设置启用 DLSS 帧生成。若有 2×/3×/4×选项，再选择不超过上限的倍率。游戏未提供该菜单时，不要把工具选了 4×当作实际运行 4×。
 9. 检查画面、流畅度、输入响应、显存和日志。失败时按下方指引恢复。
 
 ## 推荐配置与性能验收
@@ -78,7 +99,7 @@
 - 检查真实渲染 EXE 目录，而不是启动器目录。日志应在 EXE 旁 `dlssg_sm86\logs\native_<PID>.jsonl`；注意时间戳，旧日志不是新安装的证据。
 - 点击本工具“卸载并恢复原件”，再尝试 `winmm.dll`、`dinput8.dll`、`winhttp.dll` 或 `dxgi.dll` 入口。选择的是上游对应名称的**独立文件**；不能直接给 `version.dll` 改名。
 - 同一游戏目录只放本后端的一个代理。不要覆盖 ReShade、OptiScaler、RenoDX 等已有文件；上游旧版或手动安装的 Mod 需先备份并移走，不能与本版混装。
-- 手动获取路径：[固定上游提交](https://github.com/sdli1995/dlssg_for_sm86/tree/1fb9ecbd980b1f191c092dce1b072b3cb9bd8984)。下载对应 DLL，使用工具的本地 DLL 导入；下载最新版而非此提交时，首版会拒绝不匹配的文件。
+- 手动获取路径：[Native 0.2.3](https://github.com/sdli1995/dlssg_for_sm86/tree/1fb9ecbd980b1f191c092dce1b072b3cb9bd8984) / [Native 0.2.4](https://github.com/sdli1995/dlssg_for_sm86/tree/5f62ff44a9c08f9841fa605e7b7160f79ccd2c40)。下载所选版本对应的同名 DLL；本地导入也会验证，不能混用版本或重命名代理。
 
 ### FG 选项灰色 / 无倍率 / 有日志但不插帧
 
@@ -108,7 +129,7 @@
 ## 后端来源与许可证边界
 
 - Swapper 基于上游提交 `61752b6479e676d7176ada2566f3569bedc4b002`，沿用仓库 [GPLv3 LICENSE](LICENSE)。原说明保留在 [README.upstream.md](docs/README.upstream.md)。
-- FG 后端：[sdli1995/dlssg_for_sm86](https://github.com/sdli1995/dlssg_for_sm86)，固定提交 `1fb9ecbd980b1f191c092dce1b072b3cb9bd8984`，文档版本 Native 0.2.3 / 内置模型 310.1。
+- FG 后端：[sdli1995/dlssg_for_sm86](https://github.com/sdli1995/dlssg_for_sm86)，固定提交 `1fb9ecbd980b1f191c092dce1b072b3cb9bd8984`，默认 Native 0.2.3 / 内置模型 310.1；可选 Native 0.2.4 固定为 `5f62ff44a9c08f9841fa605e7b7160f79ccd2c40`。
 - 本仓库与便携包**不捆绑或重新发布 FG DLL、NVIDIA 模型/内核资源**。用户主动应用时才从上游获取；也可以导入固定版本的本地 DLL。下载文件按已核对的 SHA-256 验证，不自动追随上游变化。
 - 当前后端公开仓库主要是 DLL/文档，缺少其 C++ 源码与构建工程。[第三方声明](https://github.com/sdli1995/dlssg_for_sm86/blob/1fb9ecbd980b1f191c092dce1b072b3cb9bd8984/THIRD_PARTY_NOTICES.txt)提及 GPLv3 源码和单独的 NVIDIA 资源许可；这不代表可自由重分发所有二进制资源。后续打包分发后端或修改其内部实现，需要先厘清授权与源码可用性。
 - 内置后端模型版本与 Swapper 替换的官方 DLSSG DLL 版本是两回事；后端原生推理不会因单独更新官方 DLL 自动升级其模型。

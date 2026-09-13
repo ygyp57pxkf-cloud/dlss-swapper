@@ -13,6 +13,8 @@ public sealed class FgInstallState
     public string Proxy { get; set; } = "";
     public string DllHash { get; set; } = "";
     public string IniHash { get; set; } = "";
+    public string PreviousDllHash { get; set; } = "";
+    public DateTime? InstalledAtUtc { get; set; }
     public string PreviousIniHash { get; set; } = "";
     public string? OriginalIniHash { get; set; }
     public string Version { get; set; } = FgPackage.Version;
@@ -76,7 +78,7 @@ public static class FgInstaller
         var dll = Path.Combine(directory, state.Proxy);
         var ini = Path.Combine(directory, IniName);
         PlainPath(dll); PlainPath(ini);
-        if (!IsExpected(dll, state.DllHash) || !IsExpected(ini, state.IniHash, state.PreviousIniHash, state.OriginalIniHash))
+        if (!IsExpected(dll, state.DllHash, state.PreviousDllHash) || !IsExpected(ini, state.IniHash, state.PreviousIniHash, state.OriginalIniHash))
             throw new IOException("安装后的 DLL/INI 被其他程序或手动修改。为保留你的改动，停止自动覆盖；请查看手动恢复指引。");
         if (state.OriginalIniHash is not null)
         {
@@ -102,7 +104,7 @@ public static class FgInstaller
         }
         else
         {
-            foreach (var known in FgPackage.Assets)
+            foreach (var known in FgPackage.AllAssets)
             {
                 var existing = Path.Combine(directory, known.Name);
                 PlainPath(existing);
@@ -123,7 +125,10 @@ public static class FgInstaller
             File.WriteAllBytes(Path.Combine(backupDirectory, "original.ini"), original);
         }
         byte[] iniBytes = Encoding.UTF8.GetBytes(ini);
-        var state = new FgInstallState { Proxy = asset.Name, DllHash = asset.Sha256, IniHash = Digest(iniBytes), PreviousIniHash = old?.IniHash ?? "", OriginalIniHash = originalHash, ExeName = exeName };
+        var dllPath = Path.Combine(directory, asset.Name);
+        var previousDllHash = old is null ? "" : File.Exists(dllPath) ? FgPackage.Hash(dllPath) : old.DllHash;
+        var previousIniHash = old is null ? "" : File.Exists(iniPath) ? FgPackage.Hash(iniPath) : old.IniHash;
+        var state = new FgInstallState { Version = asset.Version, InstalledAtUtc = DateTime.UtcNow, PreviousDllHash = previousDllHash, Proxy = asset.Name, DllHash = asset.Sha256, IniHash = Digest(iniBytes), PreviousIniHash = previousIniHash, OriginalIniHash = originalHash, ExeName = exeName };
         // Journal before touching game files, so interrupted installs can be restored.
         WriteState(directory, state);
         try

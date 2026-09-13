@@ -24,10 +24,10 @@ jobs:
           $publish = 'src/bin/publish/portable'
           Copy-Item README.md "$publish/README-FG-Preview.md"
           Copy-Item LICENSE "$publish/LICENSE"
-          @{ commit = (git rev-parse HEAD); version = 'FG Preview 0.1'; backendCommit = '1fb9ecbd980b1f191c092dce1b072b3cb9bd8984'; gpuValidation = 'pending user gameplay tests' } | ConvertTo-Json | Set-Content "$publish/FG-Preview-build.json"
-          Compress-Archive -Path "$publish/*" -DestinationPath DLSS-Swapper-FG-Preview-0.1-win-x64.zip
+          @{ commit = (git rev-parse HEAD); version = 'FG Preview 0.2'; backendCommit = '1fb9ecbd980b1f191c092dce1b072b3cb9bd8984'; optionalBackendCommit = '5f62ff44a9c08f9841fa605e7b7160f79ccd2c40'; gpuValidation = 'pending user gameplay tests' } | ConvertTo-Json | Set-Content "$publish/FG-Preview-build.json"
+          Compress-Archive -Path "$publish/*" -DestinationPath DLSS-Swapper-FG-Preview-0.2-win-x64.zip
       - uses: actions/upload-artifact@v4
         with:
-          name: DLSS-Swapper-FG-Preview-0.1-win-x64
-          path: DLSS-Swapper-FG-Preview-0.1-win-x64.zip
+          name: DLSS-Swapper-FG-Preview-0.2-win-x64
+          path: DLSS-Swapper-FG-Preview-0.2-win-x64.zip
           if-no-files-found: error

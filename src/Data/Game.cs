@@ -234,6 +234,12 @@ public abstract partial class Game : ObservableObject, IComparable<Game>, IEquat
         };
     }
 
+    // Bounds how many games can be scanned for DLLs/covers at once. Every game with no previously known
+    // DLLs is re-queued for processing on every launch, so without a limit a large library fires off
+    // hundreds of concurrent recursive directory scans and UI-thread updates at startup.
+    static readonly SemaphoreSlim processGameSemaphore = new SemaphoreSlim(4);
+    readonly BackgroundCoverRefresh coverRefresh = new();
+
     /// <summary>
     /// Detects DLSS and updates cover image.
     /// </summary>
@@ -268,6 +274,8 @@ public abstract partial class Game : ObservableObject, IComparable<Game>, IEquat
 
         ThreadPool.QueueUserWorkItem(async (stateInfo) =>
         {
+            await processGameSemaphore.WaitAsync().ConfigureAwait(false);
+
             var newHasSwappableItems = false;
 
             try
@@ -315,10 +323,11 @@ public abstract partial class Game : ObservableObject, IComparable<Game>, IEquat
                     }
                 }
 
-                Task? coverImageTask = null;
                 if (shouldUpdatedCover)
                 {
-                    coverImageTask = UpdateCacheImageAsync();
+                    // Artwork is optional: an unreachable CDN must not keep the game locked.
+                    coverRefresh.Start(UpdateCacheImageAsync,
+                        error => Logger.Error(error, $"Cover refresh failed for {Title}"));
                 }
                 else
                 {
@@ -552,10 +561,6 @@ public abstract partial class Game : ObservableObject, IComparable<Game>, IEquat
                     }
                 }
 
-                if (coverImageTask is not null)
-                {
-                    await coverImageTask;
-                }
             }
             catch (Exception err)
             {
@@ -564,17 +569,19 @@ public abstract partial class Game : ObservableObject, IComparable<Game>, IEquat
             }
             finally
             {
+                processGameSemaphore.Release();
+
                 // Now update all the data on the UI therad.
                 await App.CurrentApp.RunOnUIThreadAsync(async () =>
                 {
                     HasSwappableItems = newHasSwappableItems;
 
+                    // Readiness depends on the local scan, not artwork or persisting metadata.
+                    Processing = false;
                     if (autoSave)
                     {
                         await SaveToDatabaseAsync();
                     }
-
-                    Processing = false;
                 });
             }
         });
@@ -1097,7 +1104,8 @@ public abstract partial class Game : ObservableObject, IComparable<Game>, IEquat
             using (var memoryStream = new MemoryStream())
             {
                 var fileDownloader = new FileDownloader(url, 0);
-                await fileDownloader.DownloadFileToStreamAsync(memoryStream).ConfigureAwait(false);
+                using var coverTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+                await fileDownloader.DownloadFileToStreamAsync(memoryStream, coverTimeout.Token).ConfigureAwait(false);
                 memoryStream.Position = 0;
 
                 // Now if the image is downloaded lets resize it,

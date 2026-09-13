@@ -19,10 +19,11 @@ public sealed class FrameGenerationControl : StackPanel
     readonly EasyContentDialog _dialog;
     readonly TextBox _exe = new() { Header = "实际渲染 EXE（必须位于此游戏目录内）" };
     readonly ComboBox _gpu = new() { Header = "显卡配置（请确认游戏实际使用的显卡）", ItemsSource = FgGpuProfile.All, HorizontalAlignment = HorizontalAlignment.Stretch };
-    readonly ComboBox _multiplier = new() { Header = "帧生成倍率上限", ItemsSource = new[] { "2×：最多额外生成 1 帧（推荐起点）", "4×：最多额外生成 3 帧（实验）" }, SelectedIndex = 0, HorizontalAlignment = HorizontalAlignment.Stretch };
+    readonly ComboBox _multiplier = new() { Header = "帧生成倍率上限", ItemsSource = new[] { "2×：最多额外生成 1 帧（推荐起点）", "3×：最多额外生成 2 帧（实验）", "4×：最多额外生成 3 帧（实验）" }, SelectedIndex = 0, HorizontalAlignment = HorizontalAlignment.Stretch };
     readonly ComboBox _proxy = new() { Header = "代理入口（只安装一个；替代入口必须能被游戏加载）", ItemsSource = FgPackage.Assets.Select(a => a.Name).ToArray(), SelectedIndex = 0, HorizontalAlignment = HorizontalAlignment.Stretch };
+    readonly ComboBox _backend = new() { Header = "帧生成后端版本（升级异常时可切回旧版）", ItemsSource = FgPackage.Backends, SelectedIndex = 0, HorizontalAlignment = HorizontalAlignment.Stretch };
     readonly CheckBox _approximate = new() { Content = "近似采样（仅 SM86；可能影响画质，默认关闭）" };
-    readonly TextBox _local = new() { Header = "本地 DLL（可选，留空则从上游固定提交下载）", PlaceholderText = "只接受此预览版已核对的 Native 0.2.3 文件" };
+    readonly TextBox _local = new() { Header = "本地 DLL（可选，留空则从上游固定提交下载）", PlaceholderText = "文件必须与所选版本和代理入口匹配" };
     readonly TextBlock _recommendation = Text("");
     readonly TextBlock _compatibility = Text("");
     readonly TextBlock _detected = Text("正在读取 NVIDIA 驱动提供的显卡信息……");
@@ -52,7 +53,7 @@ public sealed class FrameGenerationControl : StackPanel
             if (savedExe is not null && File.Exists(savedExe)) _exe.Text = savedExe;
         }
         catch { /* A bad preference file must not prevent manually selecting the game. */ }
-        Children.Add(new InfoBar { IsOpen = true, IsClosable = false, Severity = InfoBarSeverity.Warning, Message = "非官方帧生成实验功能，仅 Windows x64 / D3D12。2×/4×是上限，实际倍率由游戏决定；文件安装成功不等于已解锁。" });
+        Children.Add(new InfoBar { IsOpen = true, IsClosable = false, Severity = InfoBarSeverity.Warning, Message = "非官方帧生成实验功能，仅 Windows x64 / D3D12。2×/3×/4×是上限，实际倍率由游戏决定；文件安装成功不等于已解锁。" });
         Children.Add(_compatibility);
         Children.Add(_detected);
         _settings.Children.Add(_exe);
@@ -63,6 +64,7 @@ public sealed class FrameGenerationControl : StackPanel
         _settings.Children.Add(_recommendation);
         _settings.Children.Add(_multiplier);
         _settings.Children.Add(_approximate);
+        _settings.Children.Add(_backend);
         _settings.Children.Add(_proxy);
         _settings.Children.Add(_local);
         var browseDll = new Button { Content = "选择已下载的 DLL…" };
@@ -78,14 +80,18 @@ public sealed class FrameGenerationControl : StackPanel
         Children.Add(_cancel);
         Children.Add(_status);
         var logs = new Button { Content = "检查 / 打开后端日志" };
-        logs.Click += (_, _) => OpenLogs();
+        logs.Click += async (_, _) => await OpenLogsAsync();
         Children.Add(logs);
         Children.Add(new Expander {
             Header = "自动解锁失败？手动解锁与恢复指引",
             HorizontalAlignment = HorizontalAlignment.Stretch,
-            Content = Text("1. 退出游戏，确认选的是 Binaries\\Win64 内实际渲染 EXE，不是启动器。\n2. 此工具只装代理和 INI；保留游戏原有 nvngx_dlssg.dll。使用 D3D12，进入游戏图形设置启用 DLSS 帧生成。若有倍率菜单再选 2×/4×。\n3. 无日志：检查目录；先卸载本工具安装，再试另一个入口，例如 winmm.dll。必须选上游同名文件，不能把 version.dll 简单改名；其他 Mod 的 DLL 不可覆盖。\n4. 有日志但 FG 灰色/无效果：检查日志错误、游戏/驱动版本和实际 GPU；MaxGeneratedFrames=3 不能替游戏强制请求 4×。不要据此修改驱动、伪装显卡、关闭安全软件或绕过反作弊。\n5. 更新游戏或出现崩溃时先卸载恢复再重试。恢复按钮仅移除本工具拥有且未被修改的代理/INI；原 INI 从 .dlss-swapper-fg\\original.ini 恢复。\n6. 若自动恢复拒绝：先复制整个 .dlss-swapper-fg 文件夹和当前 DLL/INI 到安全位置，读取 state.json 确认 Proxy，再手动移走该代理；有 original.ini 则恢复为 dlssg_sm86.ini，无原件则移走本工具生成的 INI。保留其他 Mod，检查后再移走本工具记录目录。\n7. .fg-stage 是中断留下的暂存文件：保留备份，核对对应目标后仅移走本工具的暂存文件，再尝试恢复。\n8. 40HX 的驱动状态和 NGX/CUDA 能力需单独验证；本工具不会修复 Code 43，也不保证等同于 2060 SUPER。")
+            Content = Text("1. 退出游戏，确认选的是 Binaries\\Win64 内实际渲染 EXE，不是启动器。\n2. 此工具只装代理和 INI；保留游戏原有 nvngx_dlssg.dll。使用 D3D12，进入游戏图形设置启用 DLSS 帧生成。若有倍率菜单再选 2×/3×/4×。\n3. 无日志：检查目录；先卸载本工具安装，再试另一个入口，例如 winmm.dll。必须选上游同名文件，不能把 version.dll 简单改名；其他 Mod 的 DLL 不可覆盖。\n4. 有日志但 FG 灰色/无效果：检查日志错误、游戏/驱动版本和实际 GPU；MaxGeneratedFrames=3 不能替游戏强制请求 4×。不要据此修改驱动、伪装显卡、关闭安全软件或绕过反作弊。\n5. 更新游戏或出现崩溃时先卸载恢复再重试。恢复按钮仅移除本工具拥有且未被修改的代理/INI；原 INI 从 .dlss-swapper-fg\\original.ini 恢复。\n6. 若自动恢复拒绝：先复制整个 .dlss-swapper-fg 文件夹和当前 DLL/INI 到安全位置，读取 state.json 确认 Proxy，再手动移走该代理；有 original.ini 则恢复为 dlssg_sm86.ini，无原件则移走本工具生成的 INI。保留其他 Mod，检查后再移走本工具记录目录。\n7. .fg-stage 是中断留下的暂存文件：保留备份，核对对应目标后仅移走本工具的暂存文件，再尝试恢复。\n8. 40HX 的驱动状态和 NGX/CUDA 能力需单独验证；本工具不会修复 Code 43，也不保证等同于 2060 SUPER。")
         });
         Children.Add(new HyperlinkButton { Content = "完整 README / 测试步骤 / 上游来源", NavigateUri = new Uri("https://github.com/ygyp57pxkf-cloud/dlss-swapper/blob/feature/frame-generation-preview/README.md") });
+        _backend.SelectionChanged += (_, _) => {
+            if (_backend.SelectedIndex == 1)
+                Status("Native 0.2.4 修复显存资源与历史帧；仍有画幅切换/宽屏崩溃反馈。先测 2×，异常时退出游戏并切回 0.2.3；保留原件备份。", InfoBarSeverity.Warning);
+        };
         _gpu.SelectionChanged += (_, _) => {
             if (_gpu.SelectedItem is FgGpuProfile selected)
             {
@@ -123,13 +129,14 @@ public sealed class FrameGenerationControl : StackPanel
             var state = FgInstaller.ReadState(directory);
             if (state is null) return;
             _proxy.SelectedItem = state.Proxy;
+            _backend.SelectedItem = FgPackage.Backends.FirstOrDefault(b => b.Version == state.Version) ?? FgPackage.Backends[0];
             var iniPath = Path.Combine(directory, FgInstaller.IniName);
             if (File.Exists(iniPath))
             {
                 var ini = File.ReadAllText(iniPath);
                 if (ini.Contains("Router=SM75")) _gpu.SelectedItem = FgGpuProfile.All[1];
                 else if (ini.Contains("Router=SM86")) _gpu.SelectedItem = FgGpuProfile.All[0];
-                _multiplier.SelectedIndex = ini.Contains("MaxGeneratedFrames=3") ? 1 : 0;
+                _multiplier.SelectedIndex = ini.Contains("MaxGeneratedFrames=3") ? 2 : ini.Contains("MaxGeneratedFrames=2") ? 1 : 0;
                 _approximate.IsChecked = ini.Contains("HardwareBilinear=1") && (_gpu.SelectedItem as FgGpuProfile)?.Router == "SM86";
             }
             Status("已有安装记录：" + state.Version + " / " + state.Proxy + "。实际加载与倍率尚待游戏验证。", InfoBarSeverity.Informational);
@@ -203,16 +210,17 @@ public sealed class FrameGenerationControl : StackPanel
             var directory = FgInstaller.ValidateExe(_game.InstallPath, exe);
             EnsureGameStopped(exe);
             FgPreferences.SaveExe(PreferencesPath, _game.InstallPath, exe);
-            var asset = FgPackage.Assets[_proxy.SelectedIndex];
-            var ini = FgGameProfile.Ini(profile.Router, _multiplier.SelectedIndex == 1 ? 4 : 2, _approximate.IsChecked == true);
+            var backend = (FgBackend)_backend.SelectedItem;
+            var asset = backend.Assets[_proxy.SelectedIndex];
+            var ini = FgGameProfile.Ini(profile.Router, _multiplier.SelectedIndex + 2, _approximate.IsChecked == true);
             Status("正在获取固定版本并核对 DLL；下载完成前不会修改游戏文件。", InfoBarSeverity.Informational);
-            var source = await FgPackage.AcquireAsync(Path.Combine(Storage.StoragePath, "FrameGeneration", FgPackage.Commit), asset, _local.Text.Trim().Trim('"'), cancellation.Token);
+            var source = await FgPackage.AcquireAsync(Path.Combine(Storage.StoragePath, "FrameGeneration", backend.Commit), asset, _local.Text.Trim().Trim('"'), cancellation.Token);
             cancellation.Token.ThrowIfCancellationRequested();
             EnsureGameStopped(exe);
             Status("正在备份并写入帧生成配置……", InfoBarSeverity.Informational);
             _cancel.Visibility = Visibility.Collapsed;
             await Task.Run(() => FgInstaller.Install(directory, Path.GetFileName(exe), source, asset, ini));
-            Status("文件已安装，配置已写入（" + (_multiplier.SelectedIndex == 1 ? "4×" : "2×") + "上限）。请启动游戏开启 DLSS 帧生成，再检查画面、日志与实际倍率；尚未确认解锁成功。", InfoBarSeverity.Success);
+            Status("文件已安装，配置已写入（" + ((_multiplier.SelectedIndex + 2) + "×") + "上限）。请启动游戏开启 DLSS 帧生成，再检查画面、日志与实际倍率；尚未确认解锁成功。", InfoBarSeverity.Success);
         }
         catch (OperationCanceledException) { Status("下载已取消；未进入游戏文件安装步骤。", InfoBarSeverity.Informational); }
         catch (Exception ex) { Status("自动应用失败：" + ex.Message + " 展开下方手动指引。", InfoBarSeverity.Error); }
@@ -234,7 +242,7 @@ public sealed class FrameGenerationControl : StackPanel
         catch (Exception ex) { Status("恢复未完成：" + ex.Message + " 请展开手动恢复指引。", InfoBarSeverity.Error); }
         finally { Busy(false); }
     }
-    void OpenLogs()
+    async Task OpenLogsAsync()
     {
         if (_busy) return;
         try
@@ -243,7 +251,13 @@ public sealed class FrameGenerationControl : StackPanel
             var logs = Path.Combine(directory, "dlssg_sm86", "logs");
             if (!Directory.Exists(logs)) { Status("未发现后端日志。可能尚未启动游戏、目录错误或代理未加载；请按手动指引检查。", InfoBarSeverity.Warning); return; }
             var latest = new DirectoryInfo(logs).GetFiles("native_*.jsonl").OrderByDescending(f => f.LastWriteTimeUtc).FirstOrDefault();
-            Status(latest is null ? "日志目录存在，但未找到 native_*.jsonl；尚不能判断加载成功。" : "最新日志：" + latest.Name + " / " + latest.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss") + "。旧日志不代表本次成功；日志存在也不证明实际输出倍率。", InfoBarSeverity.Informational);
+            if (latest is null) Status("日志目录存在，但未找到 native_*.jsonl；尚不能判断加载成功。", InfoBarSeverity.Informational);
+            else
+            {
+                var installedAt = FgInstaller.ReadState(directory)?.InstalledAtUtc;
+                var report = await Task.Run(() => FgLogReport.Read(latest.FullName, installedAt));
+                Status(report.Message, report.HasErrors ? InfoBarSeverity.Warning : InfoBarSeverity.Informational);
+            }
             Process.Start(new ProcessStartInfo("explorer.exe", '"' + logs + '"') { UseShellExecute = true });
         }
         catch (Exception ex) { Status(ex.Message, InfoBarSeverity.Error); }
