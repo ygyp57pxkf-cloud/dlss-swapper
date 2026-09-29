@@ -19,10 +19,11 @@ public sealed class FrameGenerationControl : StackPanel
     readonly EasyContentDialog _dialog;
     readonly TextBox _exe = new() { Header = "实际渲染 EXE（必须位于此游戏目录内）" };
     readonly ComboBox _gpu = new() { Header = "显卡配置（请确认游戏实际使用的显卡）", ItemsSource = FgGpuProfile.All, HorizontalAlignment = HorizontalAlignment.Stretch };
-    readonly ComboBox _multiplier = new() { Header = "帧生成倍率上限", ItemsSource = new[] { "2×：最多额外生成 1 帧（推荐起点）", "3×：最多额外生成 2 帧（实验）", "4×：最多额外生成 3 帧（实验）" }, SelectedIndex = 0, HorizontalAlignment = HorizontalAlignment.Stretch };
-    readonly ComboBox _proxy = new() { Header = "代理入口（只安装一个；替代入口必须能被游戏加载）", ItemsSource = FgPackage.Assets.Select(a => a.Name).ToArray(), SelectedIndex = 0, HorizontalAlignment = HorizontalAlignment.Stretch };
+    readonly ComboBox _multiplier = new() { Header = "帧生成倍率上限", HorizontalAlignment = HorizontalAlignment.Stretch };
+    readonly ComboBox _proxy = new() { Header = "代理入口（只安装一个；替代入口必须能被游戏加载）", HorizontalAlignment = HorizontalAlignment.Stretch };
     readonly ComboBox _backend = new() { Header = "帧生成后端版本（升级异常时可切回旧版）", ItemsSource = FgPackage.Backends, SelectedIndex = 0, HorizontalAlignment = HorizontalAlignment.Stretch };
     readonly CheckBox _approximate = new() { Content = "近似采样（仅 SM86；可能影响画质，默认关闭）" };
+    readonly CheckBox _optimized = new() { Content = "Proxy 0.3.5 优化内核（逐位一致档位 1；先用关闭的档位 0 验证稳定性）" };
     readonly TextBox _local = new() { Header = "本地 DLL（可选，留空则从上游固定提交下载）", PlaceholderText = "文件必须与所选版本和代理入口匹配" };
     readonly TextBlock _recommendation = Text("");
     readonly TextBlock _compatibility = Text("");
@@ -64,6 +65,7 @@ public sealed class FrameGenerationControl : StackPanel
         _settings.Children.Add(_recommendation);
         _settings.Children.Add(_multiplier);
         _settings.Children.Add(_approximate);
+        _settings.Children.Add(_optimized);
         _settings.Children.Add(_backend);
         _settings.Children.Add(_proxy);
         _settings.Children.Add(_local);
@@ -89,7 +91,8 @@ public sealed class FrameGenerationControl : StackPanel
         });
         Children.Add(new HyperlinkButton { Content = "完整 README / 测试步骤 / 上游来源", NavigateUri = new Uri("https://github.com/ygyp57pxkf-cloud/dlss-swapper/blob/feature/frame-generation-preview/README.md") });
         _backend.SelectionChanged += (_, _) => {
-            if (_backend.SelectedIndex == 1)
+            UpdateBackendOptions();
+            if (_backend.SelectedIndex == 2)
                 Status("Native 0.2.4 修复显存资源与历史帧；仍有画幅切换/宽屏崩溃反馈。先测 2×，异常时退出游戏并切回 0.2.3；保留原件备份。", InfoBarSeverity.Warning);
         };
         _gpu.SelectionChanged += (_, _) => {
@@ -108,11 +111,26 @@ public sealed class FrameGenerationControl : StackPanel
         _restore.Click += async (_, _) => await RestoreAsync();
         _cancel.Click += (_, _) => _cancellation?.Cancel();
         dialog.Closing += (_, args) => { if (_busy) args.Cancel = true; };
+        UpdateBackendOptions();
         UpdateCompatibility();
         LoadInstalledSettings();
         Loaded += async (_, _) => await DetectGpuAsync();
     }
     void UpdateApply() => _apply.IsEnabled = !_busy && _consent.IsChecked == true && _gpu.SelectedItem is FgGpuProfile;
+    void UpdateBackendOptions()
+    {
+        if (_backend.SelectedItem is not FgBackend backend) return;
+        var previousProxy = _proxy.SelectedItem as string;
+        _proxy.ItemsSource = backend.Assets.Select(a => a.Name).ToArray();
+        _proxy.SelectedItem = backend.Assets.Any(a => a.Name == previousProxy) ? previousProxy : backend.Assets[0].Name;
+        _multiplier.ItemsSource = backend.IsProxy
+            ? new[] { "2×：保守起点", "3×：实验", "4×：实验", "5×：实验", "6×：仅游戏支持时" }
+            : new[] { "2×：保守起点", "3×：实验", "4×：实验" };
+        _multiplier.SelectedIndex = 0;
+        _approximate.Visibility = backend.IsProxy ? Visibility.Collapsed : Visibility.Visible;
+        _optimized.Visibility = backend.IsProxy ? Visibility.Visible : Visibility.Collapsed;
+        _local.Text = "";
+    }
     void UpdateCompatibility()
     {
         var profile = FgGameProfile.FindExe(_exe.Text.Trim().Trim('"'));
@@ -128,16 +146,19 @@ public sealed class FrameGenerationControl : StackPanel
             var directory = FgInstaller.ValidateExe(_game.InstallPath, _exe.Text);
             var state = FgInstaller.ReadState(directory);
             if (state is null) return;
-            _proxy.SelectedItem = state.Proxy;
             _backend.SelectedItem = FgPackage.Backends.FirstOrDefault(b => b.Version == state.Version) ?? FgPackage.Backends[0];
+            _proxy.SelectedItem = state.Proxy;
             var iniPath = Path.Combine(directory, FgInstaller.IniName);
             if (File.Exists(iniPath))
             {
                 var ini = File.ReadAllText(iniPath);
                 if (ini.Contains("Router=SM75")) _gpu.SelectedItem = FgGpuProfile.All[1];
                 else if (ini.Contains("Router=SM86")) _gpu.SelectedItem = FgGpuProfile.All[0];
-                _multiplier.SelectedIndex = ini.Contains("MaxGeneratedFrames=3") ? 2 : ini.Contains("MaxGeneratedFrames=2") ? 1 : 0;
+                _multiplier.SelectedIndex = ini.Contains("MaxGeneratedFrames=5") && (_backend.SelectedItem as FgBackend)?.IsProxy == true ? 4
+                    : ini.Contains("MaxGeneratedFrames=4") && (_backend.SelectedItem as FgBackend)?.IsProxy == true ? 3
+                    : ini.Contains("MaxGeneratedFrames=3") ? 2 : ini.Contains("MaxGeneratedFrames=2") ? 1 : 0;
                 _approximate.IsChecked = ini.Contains("HardwareBilinear=1") && (_gpu.SelectedItem as FgGpuProfile)?.Router == "SM86";
+                _optimized.IsChecked = ini.Contains("Optimized=1");
             }
             Status("已有安装记录：" + state.Version + " / " + state.Proxy + "。实际加载与倍率尚待游戏验证。", InfoBarSeverity.Informational);
         }
@@ -211,8 +232,9 @@ public sealed class FrameGenerationControl : StackPanel
             EnsureGameStopped(exe);
             FgPreferences.SaveExe(PreferencesPath, _game.InstallPath, exe);
             var backend = (FgBackend)_backend.SelectedItem;
-            var asset = backend.Assets[_proxy.SelectedIndex];
-            var ini = FgGameProfile.Ini(profile.Router, _multiplier.SelectedIndex + 2, _approximate.IsChecked == true);
+            var asset = backend.Assets.First(a => a.Name == (_proxy.SelectedItem as string));
+            int multiplier = _multiplier.SelectedIndex + 2;
+            var ini = FgGameProfile.Ini(profile.Router, multiplier, !backend.IsProxy && _approximate.IsChecked == true, backend.IsProxy, backend.IsProxy && _optimized.IsChecked == true);
             Status("正在获取固定版本并核对 DLL；下载完成前不会修改游戏文件。", InfoBarSeverity.Informational);
             var source = await FgPackage.AcquireAsync(Path.Combine(Storage.StoragePath, "FrameGeneration", backend.Commit), asset, _local.Text.Trim().Trim('"'), cancellation.Token);
             cancellation.Token.ThrowIfCancellationRequested();
@@ -220,7 +242,7 @@ public sealed class FrameGenerationControl : StackPanel
             Status("正在备份并写入帧生成配置……", InfoBarSeverity.Informational);
             _cancel.Visibility = Visibility.Collapsed;
             await Task.Run(() => FgInstaller.Install(directory, Path.GetFileName(exe), source, asset, ini));
-            Status("文件已安装，配置已写入（" + ((_multiplier.SelectedIndex + 2) + "×") + "上限）。请启动游戏开启 DLSS 帧生成，再检查画面、日志与实际倍率；尚未确认解锁成功。", InfoBarSeverity.Success);
+            Status("文件已安装，配置已写入（" + multiplier + "×上限）。请启动游戏开启 DLSS 帧生成，再检查画面、日志与实际倍率；尚未确认解锁成功。", InfoBarSeverity.Success);
         }
         catch (OperationCanceledException) { Status("下载已取消；未进入游戏文件安装步骤。", InfoBarSeverity.Informational); }
         catch (Exception ex) { Status("自动应用失败：" + ex.Message + " 展开下方手动指引。", InfoBarSeverity.Error); }
@@ -250,12 +272,19 @@ public sealed class FrameGenerationControl : StackPanel
             var directory = FgInstaller.ValidateExe(_game.InstallPath, _exe.Text);
             var logs = Path.Combine(directory, "dlssg_sm86", "logs");
             if (!Directory.Exists(logs)) { Status("未发现后端日志。可能尚未启动游戏、目录错误或代理未加载；请按手动指引检查。", InfoBarSeverity.Warning); return; }
-            var latest = new DirectoryInfo(logs).GetFiles("native_*.jsonl").OrderByDescending(f => f.LastWriteTimeUtc).FirstOrDefault();
-            if (latest is null) Status("日志目录存在，但未找到 native_*.jsonl；尚不能判断加载成功。", InfoBarSeverity.Informational);
+            var files = new DirectoryInfo(logs).GetFiles("*.jsonl")
+                .Where(f => f.Name.StartsWith("native_", StringComparison.OrdinalIgnoreCase)
+                    || f.Name.StartsWith("loader_", StringComparison.OrdinalIgnoreCase)
+                    || f.Name.StartsWith("backend_", StringComparison.OrdinalIgnoreCase)).ToArray();
+            var latest = files.OrderByDescending(f => f.LastWriteTimeUtc).FirstOrDefault();
+            if (latest is null) Status("日志目录存在，但未找到 Native 或 Proxy 后端日志；尚不能判断加载成功。", InfoBarSeverity.Informational);
             else
             {
                 var installedAt = FgInstaller.ReadState(directory)?.InstalledAtUtc;
-                var report = await Task.Run(() => FgLogReport.Read(latest.FullName, installedAt));
+                var pid = Path.GetFileNameWithoutExtension(latest.Name).Split('_').Last();
+                var related = files.Where(f => f.Name.EndsWith("_" + pid + ".jsonl", StringComparison.OrdinalIgnoreCase))
+                    .OrderBy(f => f.Name).Select(f => f.FullName).ToArray();
+                var report = await Task.Run(() => FgLogReport.ReadMany(related, installedAt));
                 Status(report.Message, report.HasErrors ? InfoBarSeverity.Warning : InfoBarSeverity.Informational);
             }
             Process.Start(new ProcessStartInfo("explorer.exe", '"' + logs + '"') { UseShellExecute = true });

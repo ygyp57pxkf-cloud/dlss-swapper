@@ -49,6 +49,14 @@ internal class GitHubRelease
 
     internal ulong GetVersionNumber()
     {
+        const string previewPrefix = "fg-preview-";
+        if (TagName.StartsWith(previewPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            var parts = TagName.Substring(previewPrefix.Length).Split('.');
+            if (parts.Length == 2 && ushort.TryParse(parts[0], out var major) && ushort.TryParse(parts[1], out var minor))
+                return 0xF000000000000000UL | ((ulong)major << 16) | minor;
+            return 0;
+        }
         // Name should always start with a version, it could be in the format v1, v1.1, v1.1.1, or v1.1.1.1
         var firstPartOfName = Name?.Split(" ").FirstOrDefault()?.Trim();
         if (firstPartOfName is null || firstPartOfName.StartsWith("v", StringComparison.InvariantCultureIgnoreCase) == false)

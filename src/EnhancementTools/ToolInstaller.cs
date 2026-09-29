@@ -24,7 +24,7 @@ public static class ToolInstaller
 
     static void Segment(string value)
     {
-        if (string.IsNullOrEmpty(value) || value is "." or ".." || value.Any(c => !(char.IsAsciiLetterOrDigit(c) || c is '-' or '_' or '.')))
+        if (string.IsNullOrEmpty(value) || value is "." or ".." || value.EndsWith(' ') || value.Any(c => !(char.IsAsciiLetterOrDigit(c) || c is '-' or '_' or '.' or ' ')))
             throw new IOException("工具目录标识无效。");
     }
 

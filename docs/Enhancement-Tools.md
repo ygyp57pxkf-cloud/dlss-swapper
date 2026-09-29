@@ -1,4 +1,4 @@
-# FG Preview 0.3：游戏、图片与视频增强试用
+# FG Preview 0.4：游戏、图片与视频增强试用
 
 此版把两个社区工具接进 Swapper，提供下载、同版本本地导入、准备状态、启动和中文指引。效果参数仍在外部工具界面中调整。它不是 NVIDIA 官方的通用 DLSS 5 安装器，不能保证把任意游戏强制升级成原生支持 DLSS 5 的游戏。
 
@@ -6,16 +6,16 @@
 
 ## 1. 安装本版
 
-1. 退出旧 Swapper，将 `DLSS-Swapper-FG-Preview-0.3-win-x64.zip` 完整解压到新的可写目录，例如 `D:\Tools\Swapper-FG-0.3`，运行 `DLSS Swapper.exe`。
+1. 退出旧 Swapper，将 `DLSS-Swapper-FG-Preview-0.4-win-x64.zip` 完整解压到新的可写目录，例如 `D:\Tools\Swapper-FG-0.4`，运行 `DLSS Swapper.exe`。
 2. 要保留设置，在两版都退出时，复制旧版的整个 `StoredData-FG-Preview` 到新版旁。旧程序和旧配置保留，方便回退。
 3. 左侧打开 **画质增强**。只下载自己需要的组件。下载完不会自动启动；“已准备”仅表示启动文件与包记录通过检查。
 
 | 工具 | 固定版本 / 作者发布页 | 用途与空间 |
 |---|---|---|
-| DLSS5-Swapper | [2.2.7](https://github.com/rakanki911/DLSS5-Swapper/releases/tag/v2.2.7) | 游戏配置管理；下载约 222 MiB，独立便携 EXE |
-| DLSS 5 Visual Enhancer | [8.0](https://github.com/Merserk/dlss5-visual-enhancer/releases/tag/v8.0) | 图片、视频导出与带缓冲的 Live 播放；下载约 475 MiB，解压约 1.1 GiB，建议预留 2 GiB |
+| DLSS5-Swapper | [2.2.9](https://github.com/rakanki911/DLSS5-Swapper/releases/tag/v2.2.9) | 游戏配置管理；下载约 246 MiB，独立便携 EXE |
+| Visual Enhancer | [13.2](https://github.com/Merserk/dlss5-visual-enhancer/releases/tag/v13.2) | 图片、视频和 Live；下载约 691 MiB，解压约 1.64 GiB，建议预留至少 3 GiB |
 
-网络不稳定时，从对应作者发布页下载 `DLSS5-Swapper-2.2.7-portable.exe` 或 `DLSS.5.Visual.Enhancer.v8.0.zip`，点 **导入已下载的包**。不要预先解压媒体包，不要选其他版本。两种导入方式都核对固定版本的大小与 SHA-256，不执行安装脚本。
+网络不稳定时，从对应作者发布页下载 `DLSS5-Swapper-2.2.9-portable.exe` 或 `Visual.Enhancer.v13.2.zip`，点 **导入已下载的包**。不要预先解压媒体包，不要选其他版本。两种导入方式都核对固定版本的大小与 SHA-256，不执行安装脚本。
 
 主程序 ZIP 不捆绑这两个包。组件在用户点击后直接从各作者 GitHub Releases 获取，自有代码与内含第三方运行时遵守各自许可；本 Fork 的 GPLv3 不改变第三方资源的许可。工具包完整性核对不是独立安全审计或游戏兼容性认证。
 
@@ -37,18 +37,18 @@
 | 《战地 3》 | `bf3.exe`，32 位 DX11；选对应 32 位链路 | 仅允许 Mod 的单人环境；其他《战地》作品需按各自 EXE 核对 |
 | 《孤胆枪手》与其他 2D / 2.5D 游戏 | 先选实际 EXE 看接口；必要时查对应发行版本或包装器 | 尚无可靠兼容实测；固定视角或 2D 素材可能出现不合原画风的重绘，不承诺可用 |
 
-如果已经用本 Swapper 安装了 Native FG，检查 `.dlss-swapper-fg` 和 `version.dll` / `dxgi.dll` 等归属。不要直接覆盖。需要撤销原 FG 时，用游戏详情中的 **卸载并恢复原件**；需要撤销 DLSS5-Swapper 配置时，用它自己的 Restore originals。
+如果已经用本 Swapper 安装了 FG 后端，检查 `.dlss-swapper-fg` 和 `version.dll` / `dxgi.dll` 等归属。不要直接覆盖。需要撤销原 FG 时，用游戏详情中的 **卸载并恢复原件**；需要撤销 DLSS5-Swapper 配置时，用它自己的 Restore originals。
 
 ## 3. 图片 / 本地视频
 
-1. 在“图片 / 视频增强”卡片准备 v8.0 后，点击 **打开工具**。它用自己的便携 Python 启动，不要求另装 Python。首次启动等待终端提示，然后打开终端给出的本地网页地址。
+1. 在“图片 / 视频增强”卡片准备 v13.2 后，点击 **打开工具**。本版启动 `Visual Enhancer.exe` 桌面应用，包内自带运行环境；不再使用旧版 `start.bat` 或本地网页流程。
 2. 建议 Windows 11、RTX 3080 起步。选择 **Neural Rendering → Image / Video**，打开文件，先单 Pass、低强度，预览后输出到独立位置。`Detail-Only` 可尽量保留原色调。
 3. 只是希望放大/改善清晰度时选 **Upscale**；希望改变材质与光照细节时再试 **Neural Rendering**。先用短片或单张图片比较，检查人脸、文字、边缘、颜色与帧间闪烁。
-4. 导出视频先选 **H.264 / H.265 (NVIDIA NVENC)**，保留源视频。NR 与插帧分开测试；v8.0 的视频插帧文档标注 RTX 40/50，3080 不以视频插帧成功为默认预期。
-5. 想边播边增强时：**Live → Local video**，从 720p、原帧率、单 Pass 开始，**Open in MPV → Start Live**。Live 有缓冲，适合视频试播，不能作为低延迟游戏滤镜。
-6. 使用结束后在外部工具中停止处理，再关闭它的页面和启动终端。退出 Swapper 不会替你结束外部工具。
+4. 导出视频先选 **H.264 / H.265 (NVIDIA NVENC)**，保留源视频。NR 与插帧分开测试；各型号对 v13.2 视频插帧的实际支持以其界面提示和运行结果为准。
+5. 使用 Live 时从 720p、原帧率、单 Pass 和短片段开始，观察缓冲与延迟；它不是低延迟游戏滤镜。
+6. 使用结束后在外部工具中停止处理，再关闭桌面应用。退出 Swapper 不会替你结束外部工具。
 
-**40HX 特别说明：** 该卡已有独立的双解锁/NVENC 主机端成功记录，但 v8.0 根据显卡名称是否包含 `RTX` 标记 AI 兼容性；名称为 `CMP 40HX` 时可能先被标记不兼容。此版不修改外部工具检测、不伪装型号、不改驱动。NVENC 可以编码不能单独证明 NR 可以运行。
+**40HX 特别说明：** 该卡已有独立的双解锁/NVENC 主机端成功记录；v13.2 在 40HX 上的兼容检测与运行结果待真机验证。本版不修改外部工具检测、不伪装型号、不改驱动。NVENC 可以编码不能单独证明 NR 可以运行。
 
 ## 4. 保存、失败恢复与反馈
 
@@ -60,4 +60,4 @@
 
 首次反馈请提供：游戏/视频名称、游戏版本和 EXE、GPU/驱动、外部工具版本、所选模式、输出分辨率、可复现现象与相关工具日志。先处理启动失败、不能恢复或冲突，再比较效果、流畅度与显存。
 
-本版验证涵盖核心准备/恢复检查、真实固定包的校验和解压、Windows 构建与便携包结构；未执行第三方增强引擎或验收 Windows UI、真实 GPU、游戏和视频效果。
+本版已核对新版工具包的大小、SHA-256 与 Visual Enhancer 的目录结构；核心准备/恢复、Windows 构建和便携包结构由仓库构建流程验证。未执行第三方增强引擎，也未验收 Windows UI、真实 GPU、游戏和视频效果。

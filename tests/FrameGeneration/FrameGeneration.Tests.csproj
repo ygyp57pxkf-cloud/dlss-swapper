@@ -7,6 +7,8 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../../src/FrameGeneration/*.cs" Link="Core/%(Filename)%(Extension)" />
+    <Compile Include="../../src/Data/GitHub/GitHubRelease.cs" Link="Core/GitHubRelease.cs" />
+    <Compile Include="../../src/Data/GitHub/GitHubReleaseAsset.cs" Link="Core/GitHubReleaseAsset.cs" />
     <Compile Include="../../src/Helpers/BackgroundCoverRefresh.cs" Link="Core/BackgroundCoverRefresh.cs" />
   </ItemGroup>
 </Project>

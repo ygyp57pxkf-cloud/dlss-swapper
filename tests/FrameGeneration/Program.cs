@@ -16,6 +16,12 @@ try
     var ini4 = FgGameProfile.Ini("SM75", 4, false);
     Check(ini2.Contains("MaxGeneratedFrames=1") && ini4.Contains("MaxGeneratedFrames=3"), "2x and 4x caps map to generated counts");
     Check(FgGameProfile.Ini("SM75", 3, false).Contains("MaxGeneratedFrames=2"), "3x is two generated frames");
+    var proxyIni = FgGameProfile.Ini("SM75", 6, false, proxy: true);
+    Check(proxyIni.Contains("Optimized=0") && proxyIni.Contains("MaxGeneratedFrames=5") && proxyIni.Contains("Mode=Bundled"), "new proxy defaults to stock kernels and supports 6x ceiling");
+    Check(FgGameProfile.Ini("SM86", 2, false, proxy: true, optimized: true).Contains("Optimized=1"), "proxy optimization is explicit");
+    Throws(() => FgGameProfile.Ini("SM86", 6, false), "old native backend cannot request 6x");
+    var previewRelease = new DLSS_Swapper.Data.GitHub.GitHubRelease { Name = "DLSS Swapper FG Preview 0.4", TagName = "fg-preview-0.4" };
+    Check(previewRelease.GetVersionNumber() > new DLSS_Swapper.Data.GitHub.GitHubRelease { TagName = "fg-preview-0.3" }.GetVersionNumber(), "fork prerelease ordering uses tags");
     Throws(() => FgGameProfile.Ini("SM86", 5, false), "reject unsupported multiplier");
     Throws(() => FgGameProfile.Ini("SM75", 2, true), "reject SM75 approximate mode");
     Check(FgGpuProfile.Recommend("NVIDIA CMP 40HX")!.Router == "SM75", "CMP profile is SM75 experiment");
@@ -106,6 +112,14 @@ try
     Check(stale.HasErrors && stale.Message.Contains("早于本次安装") && !stale.Message.Contains("最多生成"), "old logs never validate a newly installed backend");
     File.WriteAllText(logFile, "{\"event\":\"configuration\"}\n");
     Check(FgLogReport.Read(logFile, null).Message.Contains("未读到有效生成帧数"), "configuration log alone does not imply frame generation");
+    File.WriteAllText(logFile, "{\"event\":\"configuration\"}\n" + new string(' ', 8 * 1024 * 1024) + "\n{\"event\":\"backend_unusable\"}\n");
+    Check(FgLogReport.Read(logFile, null).HasErrors, "late backend failure remains visible after an 8 MiB log");
+    var loaderLog = Path.Combine(root, "loader_42.jsonl");
+    var backendLog = Path.Combine(root, "backend_42.jsonl");
+    File.WriteAllText(loaderLog, "{\"event\":\"backend_install\",\"status\":0}\n");
+    File.WriteAllText(backendLog, "{\"event\":\"install\",\"active\":true}\n");
+    var proxyReport = FgLogReport.ReadMany([loaderLog, backendLog], null);
+    Check(proxyReport.Message.Contains("后端安装：成功记录") && proxyReport.Message.Contains("路由启用：有记录"), "proxy loader and backend logs are combined");
     // Simulate a CDN that does not return: scheduling artwork must not block local readiness.
     var stalledCover = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
     var coverStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);

@@ -95,7 +95,7 @@ public sealed class EnhancementToolsPage : Page
             var body = new StackPanel { Spacing = 10 };
             body.Children.Add(new TextBlock { Text = tool.Name + " · " + tool.Version, FontSize = 22, TextWrapping = TextWrapping.Wrap });
             body.Children.Add(Text(tool.Description));
-            body.Children.Add(Text($"下载约 {tool.DownloadBytes / 1048576d:F0} MiB · " + (tool.IsZip ? "建议预留 2 GiB 空间 · 已含便携 Python" : "独立便携程序") + " · 首次使用需手动准备"));
+            body.Children.Add(Text($"下载约 {tool.DownloadBytes / 1048576d:F0} MiB · " + (tool.IsZip ? "建议预留 3 GiB 空间 · 已含运行环境" : "独立便携程序") + " · 首次使用需手动准备"));
             // Short rows fit the existing compact navigation layout; text wraps at narrow widths.
             var prepare = new StackPanel { Spacing = 8 };
             prepare.Children.Add(_download); prepare.Children.Add(_import);
@@ -203,7 +203,7 @@ public sealed class EnhancementToolsPage : Page
                 }
                 using var process = Process.Start(ToolInstaller.LaunchInfo(prepared));
                 Status((copyPath ? "路径已复制，请在外部管理器 Add a game 中选择。" : "已请求打开工具。")
-                    + (_tool.IsZip ? " 首次启动请等待终端提示，打开其中的本地网页地址。" : " 请在外部管理器中完成游戏配置。") + " 启动请求不代表 NR 已运行。");
+                    + (_tool.IsZip ? " 请在 Visual Enhancer 桌面界面操作。" : " 请在外部管理器中完成游戏配置。") + " 启动请求不代表 NR 已运行。");
             }
             catch (Exception ex) { Status(ex.Message, InfoBarSeverity.Error); }
             finally { Busy(false); }

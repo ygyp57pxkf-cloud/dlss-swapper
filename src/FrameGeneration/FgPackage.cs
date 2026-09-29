@@ -11,13 +11,14 @@ namespace DLSS_Swapper.FrameGeneration;
 
 public sealed record FgAsset(string Name, string RepositoryPath, string Sha256, string Version = FgPackage.Version, string Commit = FgPackage.Commit);
 
-public sealed record FgBackend(string Version, string Commit, FgAsset[] Assets, string Description)
+public sealed record FgBackend(string Version, string Commit, FgAsset[] Assets, string Description, bool IsProxy = false)
 {
     public override string ToString() => Version + " · " + Description;
 }
 
 public static class FgPackage
 {
+    public const string PreviewTag = "fg-preview-0.4";
     public const string Commit = "1fb9ecbd980b1f191c092dce1b072b3cb9bd8984";
     public const string Version = "Native 0.2.3";
     public static readonly FgAsset[] Assets = [
@@ -35,8 +36,14 @@ public static class FgPackage
         new("winhttp.dll", "altnative/winhttp.dll", "1619839e4d1b6145ce9a587ba807f42e64f2b0984af9e81700d42ccf46ff7253", "Native 0.2.4", CandidateCommit),
         new("dxgi.dll", "altnative/dxgi.dll", "8d29eddbd7f1c3e272d07f94ab8812a80ef5b7aeb73923320bf9a432ddcf74c0", "Native 0.2.4", CandidateCommit)
     ];
+    public const string ProxyCommit = "9621db573e07ed54f50c15bbb585ed9a7bdfac28";
+    public const string ProxyVersion = "Proxy 0.3.5 · DLSSG 310.9.1";
+    public static readonly FgAsset[] ProxyAssets = [
+        new("version.dll", "version.dll", "c3934a09399f022504227c72df0bf8c0de55f9a08880dddde898c5262cefa838", ProxyVersion, ProxyCommit)
+    ];
     public static readonly FgBackend[] Backends = [
-        new(Version, Commit, Assets, "原版后端 / 默认保留"),
+        new(ProxyVersion, ProxyCommit, ProxyAssets, "新版代理 / 310.9.1 / 最多 6×", true),
+        new(Version, Commit, Assets, "旧版 Native / 回退保留"),
         new("Native 0.2.4", CandidateCommit, CandidateAssets, "显存与历史帧修复 / 可选测试")
     ];
     public static IEnumerable<FgAsset> AllAssets => Backends.SelectMany(b => b.Assets);

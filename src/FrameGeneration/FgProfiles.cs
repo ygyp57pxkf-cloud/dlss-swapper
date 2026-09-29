@@ -31,11 +31,16 @@ public sealed record FgGameProfile(string Name, string RelativeExe, string Guida
     ];
     public static FgGameProfile? Find(string root) => All.FirstOrDefault(p => File.Exists(Path.Combine(root, p.RelativeExe.Replace('/', Path.DirectorySeparatorChar))));
     public static FgGameProfile? FindExe(string exe) => All.FirstOrDefault(p => string.Equals(Path.GetFileName(exe), Path.GetFileName(p.RelativeExe), StringComparison.OrdinalIgnoreCase));
-    public static string Ini(string router, int multiplier, bool approximate)
+    public static string Ini(string router, int multiplier, bool approximate, bool proxy = false, bool optimized = false)
     {
         if (router != "SM75" && router != "SM86") throw new ArgumentException("请选择支持的 GPU 路由。");
-        if (multiplier < 2 || multiplier > 4) throw new ArgumentException("支持 2× / 3× / 4× 上限。");
+        if (multiplier < 2 || multiplier > (proxy ? 6 : 4)) throw new ArgumentException("所选后端不支持这个倍率上限。");
         if (approximate && router != "SM86") throw new ArgumentException("SM75 不支持近似采样。");
+        if (proxy)
+        {
+            if (approximate) throw new ArgumentException("Proxy 0.3.5 请使用一致性档位，不使用旧版近似采样开关。");
+            return $"; DLSS Swapper FG Preview - proxy 0.3.5 / bundled 310.9.1\r\n[General]\r\nEnabled=1\r\n\r\n[FrameGeneration]\r\nOptimized={(optimized ? 1 : 0)}\r\nMaxGeneratedFrames={multiplier - 1}\r\n\r\n[Compatibility]\r\nRouter={router}\r\nKernelImage=PTX\r\n\r\n[Runtime]\r\nMode=Bundled\r\n\r\n[Logging]\r\nLevel=2\r\nDirectory=dlssg_sm86\\logs\r\n";
+        }
         return $"; DLSS Swapper FG Preview - cap only, actual multiplier requested by game\r\n[Compatibility]\r\nRouter={router}\r\nKernelImage=PTX\r\nHardwareBilinear={(approximate ? 1 : 0)}\r\n\r\n[FrameGeneration]\r\nMaxGeneratedFrames={multiplier - 1}\r\n\r\n[Logging]\r\nLevel=2\r\n";
     }
 }

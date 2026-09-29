@@ -3,14 +3,20 @@
 Personal GPLv3 fork of beeradmoore/dlss-swapper. Active branch: feature/frame-generation-preview. Keep upstream WinUI game/DLL workflow; add experimental FG management rather than rewriting UI.
 
 - Targets: Black Myth Wukong and Wuchang Fallen Feathers; RTX 3080 and user CMP 40HX unlocked (SM75 route, not certified RTX 2060 SUPER equivalence). Gameplay and GPU performance remain unvalidated until user measurements.
-- Native 0.2.3 remains the default at 1fb9ecbd980b1f191c092dce1b072b3cb9bd8984; user-authorized optional Native 0.2.4 is pinned at 5f62ff44a9c08f9841fa605e7b7160f79ccd2c40. Both are sdli1995/dlssg_for_sm86. Do not bundle vendor/model DLLs or silently change these pins. Public backend currently lacks buildable source; licenses need clarification before redistribution.
+- Preview 0.4 defaults to Proxy 0.3.5 at 9621db573e07ed54f50c15bbb585ed9a7bdfac28 (bundled runtime 310.9.1). Native 0.2.3 at 1fb9ecbd980b1f191c092dce1b072b3cb9bd8984 and Native 0.2.4 at 5f62ff44a9c08f9841fa605e7b7160f79ccd2c40 remain fallback choices. All are sdli1995/dlssg_for_sm86. Do not bundle vendor/model DLLs or silently change these pins. Public backend currently lacks buildable source; licenses need clarification before redistribution.
 - 2x/3x/4x UI is a maximum generated-frame count, NOT proof of active multiplier. Do not claim unlocking based on copying files or finding logs. No automatic game graphics settings are changed in preview 0.1.
 - FgInstaller owns only journaled proxy/INI; preserve other mods, external edits and original INI. Journal before writes. Do not bypass checks, modify drivers, spoof GPU identity, or disable protections.
 - Core fixture tests: dotnet run --project tests/FrameGeneration/FrameGeneration.Tests.csproj. Complete WinUI builds on Windows using .github/workflows/fg-preview.yml. macOS core tests cannot certify UI or gameplay.
 - Portable settings isolated in StoredData-FG-Preview; application updater points to this fork.
 - README.md is the Chinese user guide; upstream README kept at docs/README.upstream.md.
 
-## Preview 0.3 tool integration (2026-09-13)
+## Preview 0.4 update (2026-09-30)
+
+- Proxy 0.3.5 uses `version.dll` only in this manager, with conservative `Optimized=0` and a 2x default. 6x is a cap and requires a game request. Preserve the Native backends and original INI recovery.
+- App updates use fork `fg-preview-*` prereleases; the `/releases/latest` endpoint excludes prereleases. New Proxy logs are `loader_*.jsonl` and `backend_*.jsonl`; late errors in long logs must be visible.
+- Optional external tool pins: DLSS5-Swapper 2.2.9 and Visual Enhancer 13.2. The latter launches `Visual Enhancer.exe` as a desktop app. Never bundle either external package in this preview ZIP; real gameplay/media results remain unverified.
+
+## Preview 0.3 tool integration (2026-09-13; historical)
 
 - EnhancementToolsPage is a lazy navigation page. Never download, hash large optional tools, or initialize them during game-library startup. Hashing/extraction runs on worker tasks; keep the original scan fix intact.
 - ToolCatalog pins DLSS5-Swapper 2.2.7 and DLSS 5 Visual Enhancer 8.0 by release URL, byte size and SHA-256. Download/import only on user click, stage under StoredData-FG-Preview/EnhancementTools, launch only on a separate click. Do not bundle third-party tools or model/runtime assets in our ZIP.

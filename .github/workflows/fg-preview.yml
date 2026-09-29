@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
     inputs:
       publish_preview:
-        description: Publish FG Preview 0.3 after successful checks and build
+        description: Publish FG Preview 0.4 after successful checks and build
         required: true
         default: false
         type: boolean
@@ -36,12 +36,12 @@ jobs:
           (Get-Content README.md -Raw).Replace('(docs/Enhancement-Tools.md)', '(Enhancement-Tools.md)').Replace('(docs/README.upstream.md)', '(https://github.com/ygyp57pxkf-cloud/dlss-swapper/blob/feature/frame-generation-preview/docs/README.upstream.md)') | Set-Content "$publish/README-FG-Preview.md"
           Copy-Item LICENSE "$publish/LICENSE"
           Copy-Item docs/Enhancement-Tools.md "$publish/Enhancement-Tools.md"
-          @{ commit = (git rev-parse HEAD); version = 'FG Preview 0.3'; backendCommit = '1fb9ecbd980b1f191c092dce1b072b3cb9bd8984'; optionalBackendCommit = '5f62ff44a9c08f9841fa605e7b7160f79ccd2c40'; gameTool = 'DLSS5-Swapper 2.2.7 (on demand)'; mediaTool = 'Visual Enhancer 8.0 (on demand)'; gpuValidation = 'pending user gameplay and media tests' } | ConvertTo-Json | Set-Content "$publish/FG-Preview-build.json"
-          Compress-Archive -Path "$publish/*" -DestinationPath DLSS-Swapper-FG-Preview-0.3-win-x64.zip
+          @{ commit = (git rev-parse HEAD); version = 'FG Preview 0.4'; backendCommit = '9621db573e07ed54f50c15bbb585ed9a7bdfac28'; fallbackBackendCommits = @('1fb9ecbd980b1f191c092dce1b072b3cb9bd8984', '5f62ff44a9c08f9841fa605e7b7160f79ccd2c40'); gameTool = 'DLSS5-Swapper 2.2.9 (on demand)'; mediaTool = 'Visual Enhancer 13.2 (on demand)'; gpuValidation = 'pending CMP 40HX gameplay and media tests' } | ConvertTo-Json | Set-Content "$publish/FG-Preview-build.json"
+          Compress-Archive -Path "$publish/*" -DestinationPath DLSS-Swapper-FG-Preview-0.4-win-x64.zip
       - name: Verify portable package
         shell: pwsh
         run: |
-          $archive = [IO.Compression.ZipFile]::OpenRead("$pwd/DLSS-Swapper-FG-Preview-0.3-win-x64.zip")
+          $archive = [IO.Compression.ZipFile]::OpenRead("$pwd/DLSS-Swapper-FG-Preview-0.4-win-x64.zip")
           try {
             foreach ($name in @('DLSS Swapper.exe', 'README-FG-Preview.md', 'Enhancement-Tools.md', 'FG-Preview-build.json')) {
               if (-not $archive.GetEntry($name)) { throw "Missing packaged file: $name" }
@@ -56,11 +56,11 @@ jobs:
           } finally { $archive.Dispose() }
       - uses: actions/upload-artifact@v4
         with:
-          name: DLSS-Swapper-FG-Preview-0.3-win-x64
-          path: DLSS-Swapper-FG-Preview-0.3-win-x64.zip
+          name: DLSS-Swapper-FG-Preview-0.4-win-x64
+          path: DLSS-Swapper-FG-Preview-0.4-win-x64.zip
           if-no-files-found: error
       - name: Publish requested prerelease
         if: github.event_name == 'workflow_dispatch' && inputs.publish_preview
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create fg-preview-0.3 DLSS-Swapper-FG-Preview-0.3-win-x64.zip --target ${{ github.sha }} --title "DLSS Swapper FG Preview 0.3" --prerelease --notes-file docs/Release-0.3.md
+        run: gh release create fg-preview-0.4 DLSS-Swapper-FG-Preview-0.4-win-x64.zip --target ${{ github.sha }} --title "DLSS Swapper FG Preview 0.4" --prerelease --notes-file docs/Release-0.4.md

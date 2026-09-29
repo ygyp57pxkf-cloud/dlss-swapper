@@ -96,6 +96,11 @@ try
     var zipRoot = Dir("valid-zip");
     var unpacked = await ToolInstaller.PrepareAsync(zipRoot, zipTool, validZip, client, null, default);
     Check(File.Exists(Path.Combine(unpacked.Directory, "bin", "python.exe")), "archive extracts runtime beside root launcher");
+    var desktopZip = Zip("desktop", ("Visual Enhancer.exe", 0), ("app.py", 0), ("bin/python.exe", 0));
+    var desktopTool = Tool(desktopZip, "desktop-tool", true) with { LauncherName = "Visual Enhancer.exe", RequiredFiles = ["app.py", "bin/python.exe"] };
+    var desktop = await ToolInstaller.PrepareAsync(Dir("desktop-zip"), desktopTool, desktopZip, client, null, default);
+    Check(Path.GetFileName(desktop.Launcher) == "Visual Enhancer.exe" && ToolInstaller.GetPrepared(Dir("desktop-zip"), desktopTool) == desktop,
+        "new desktop archive launcher with spaces prepares and reopens");
     File.Delete(Path.Combine(unpacked.Directory, "app.py"));
     await Reject(() => Task.Run(() => ToolInstaller.GetPrepared(zipRoot, zipTool)), "missing required runtime prevents ready state");
     var cancelZipRoot = Dir("cancel-zip"); using var zipCancellation = new CancellationTokenSource();

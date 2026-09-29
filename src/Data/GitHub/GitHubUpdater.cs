@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -9,6 +10,7 @@ using ByteSizeLib;
 using CommunityToolkit.WinUI.Controls;
 using DLSS_Swapper.Extensions;
 using DLSS_Swapper.Helpers;
+using DLSS_Swapper.FrameGeneration;
 using DLSS_Swapper.UserControls;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -42,14 +44,17 @@ internal class GitHubUpdater
                 // If we are not downloading and we are not forced to check then return the existing object.
                 if (forceCheck == false)
                 {
-                    using (var fileStream = File.OpenRead(releasesFile))
+                    try
                     {
-                        var githubRelease = JsonSerializer.Deserialize(fileStream, SourceGenerationContext.Default.GitHubRelease);
-                        if (githubRelease is not null)
+                        using (var fileStream = File.OpenRead(releasesFile))
                         {
-                            return githubRelease;
+                            var githubRelease = JsonSerializer.Deserialize(fileStream, SourceGenerationContext.Default.GitHubRelease);
+                            if (githubRelease is not null && githubRelease.TagName.StartsWith("fg-preview-", StringComparison.OrdinalIgnoreCase))
+                                return githubRelease;
                         }
                     }
+                    catch (JsonException) { /* Replace an old or damaged cache from GitHub. */ }
+                    shouldDownload = true;
                 }
             }
         }
@@ -60,23 +65,23 @@ internal class GitHubUpdater
             {
                 using (var memoryStream = new MemoryStream())
                 {
-                    var fileDownloader = new FileDownloader("https://api.github.com/repos/ygyp57pxkf-cloud/dlss-swapper/releases/latest", 0);
+                    var fileDownloader = new FileDownloader("https://api.github.com/repos/ygyp57pxkf-cloud/dlss-swapper/releases?per_page=20", 0);
                     await fileDownloader.DownloadFileToStreamAsync(memoryStream).ConfigureAwait(false);
 
                     memoryStream.Position = 0;
 
-                    var githubRelease = JsonSerializer.Deserialize(memoryStream, SourceGenerationContext.Default.GitHubRelease);
+                    var releases = JsonSerializer.Deserialize(memoryStream, SourceGenerationContext.Default.GitHubReleaseArray);
+                    var githubRelease = releases?.Where(r => !r.Draft && r.TagName.StartsWith("fg-preview-", StringComparison.OrdinalIgnoreCase))
+                        .OrderByDescending(r => r.GetVersionNumber()).FirstOrDefault();
                     if (githubRelease is null)
                     {
                         throw new Exception("Could not load GitHub release data.");
                     }
 
-                    memoryStream.Position = 0;
-
-                    // If we did load the json, save it to disk.
+                    // Cache the selected release, not the complete release list.
                     using (var fileStream = File.Create(releasesFile))
                     {
-                        await memoryStream.CopyToAsync(fileStream).ConfigureAwait(false);
+                        JsonSerializer.Serialize(fileStream, githubRelease, SourceGenerationContext.Default.GitHubRelease);
                     }
 
                     return githubRelease;
@@ -133,11 +138,7 @@ internal class GitHubUpdater
         }
 
         var latestVersion = latestRelease.GetVersionNumber();
-        var version = App.CurrentApp.GetVersion();
-        var currentVersion = ((ulong)version.Major << 48) +
-            ((ulong)version.Minor << 32) +
-            ((ulong)version.Build << 16) +
-            ((ulong)version.Revision);
+        var currentVersion = new GitHubRelease { TagName = FgPackage.PreviewTag }.GetVersionNumber();
 
         // New version is available.
         if (latestVersion > currentVersion)
@@ -158,12 +159,7 @@ internal class GitHubUpdater
         {
             return false;
         }
-        else if (thisVersion < lastVersionPromptedFor)
-        {
-            return false;
-        }
-
-        return true;
+        return lastVersionPromptedFor >= thisVersion;
     }
 
     internal async Task DisplayNewUpdateDialog(GitHubRelease gitHubRelease, XamlRoot xamlRoot)
